@@ -117,11 +117,18 @@ Core module — handles CV upload, parsing, AI analysis, and enhancement.
 - **File Types**: PDF (PyPDF2) and DOCX (python-docx)
 
 ### 4.4 `job_matching`
-Matches user CV against job descriptions.
+Matches user CV against job descriptions and provides an integrated Job Application Tracker (Kanban CRM).
 
-- **Models**: `JobDescription`, `JobMatch`
-- **Key Views**: matching (input + run), result (scores, gaps, suggestions), history
-- **Properties**: match_label, match_score with color coding
+- **Models**:
+  - `JobDescription`: `title`, `company`, `location`, `job_type`, `salary_range`, `description`, `job_url`, `is_archived`
+  - `JobMatch`: `user`, `cv_upload`, `job_description`, `match_score`, `matching_keywords`, `missing_keywords`, `matching_skills`, `missing_skills`, `suggestions`, `strength_areas`, `gap_areas`, `section_analysis`, `optimize_plan`, `ai_summary`, `is_saved`, `application_status` (Saved, Applied, Interview, Offered, Rejected), `notes`, `follow_up_date`, `ats_platform`, `ats_tips`
+- **Key Views**:
+  - `matching` (`/jobs/`): Input job description, detect ATS platform, run matching analysis
+  - `result` (`/jobs/result/<id>/`): Match scores, keyword gaps, section breakdown, ATS optimization tips
+  - `history` (`/jobs/history/`): Past job matches and scores
+  - `tracker` (`/jobs/tracker/`): Visual Kanban board tracking application pipeline statuses, follow-up dates, notes, and ATS-specific advice
+  - `update_status` (`/jobs/update-status/`): Endpoint to update application status, follow-up dates, and notes dynamically
+- **ATS Detection**: Built-in `ats_detector.py` identifies major ATS platforms (Workday, Taleo, Greenhouse, Lever, iCIMS) from job URLs or descriptions and provides tailored formatting guidance.
 
 ### 4.5 `assessment`
 Multi-dimensional career readiness assessment.

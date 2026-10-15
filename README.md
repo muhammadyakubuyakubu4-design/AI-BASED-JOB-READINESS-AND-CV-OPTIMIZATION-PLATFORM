@@ -30,6 +30,9 @@ python manage.py runserver
 
 - **CV Analysis** — Upload PDF/DOCX CVs; get ATS, grammar, keyword & format scores (0-100)
 - **Job Matching** — Paste any job description; AI calculates match % and missing keywords/skills
+- **Job Application Tracker (Kanban CRM)** — Visual board tracking job application pipeline (Saved, Applied, Interview, Offer, Rejected) with notes, follow-up dates, and ATS platform tips
+- **ATS Platform Detection** — Automatic detection of major ATS vendors (Workday, Taleo, Greenhouse, Lever, iCIMS) with platform-specific formatting guidance
+- **Dual-Mode (Online/Offline) Engine** — Cloud LLM inference with automated local NLP fallback ensuring resume parsing and scoring operate seamlessly even without internet — Paste any job description; AI calculates match % and missing keywords/skills
 - **Readiness Assessment** — Multi-dimensional score (technical, soft skills, experience, education)
 - **Interview Preparation** — AI-generated behavioral, technical & situational questions
 - **Career Recommendations** — Personalized career paths, courses, certifications & job titles
