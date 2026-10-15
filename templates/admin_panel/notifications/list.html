@@ -1,0 +1,119 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Notifications — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-bell"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total Notifications</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#dc3545;--kpi-bg:#fff3f3">
+      <div class="ap-kpi-icon"><i class="fas fa-bell-slash"></i></div>
+      <div><div class="ap-kpi-value">{{ unread_count }}</div><div class="ap-kpi-label">Unread</div></div>
+    </div>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-12">
+    <div class="ap-broadcast-card">
+      <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i>Broadcast Notification</h5>
+      <form method="post" action="{% url 'admin_panel:broadcast' %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" required placeholder="Notification title…">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Type</label>
+            <select name="notification_type" class="form-select">
+              {% for type, label in notification_types %}
+              <option value="{{ type }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Target</label>
+            <select name="target" class="form-select">
+              <option value="all">All Users</option>
+              <option value="user">Specific User</option>
+            </select>
+          </div>
+          <div class="col-md-9">
+            <label class="form-label">Message</label>
+            <textarea name="message" class="form-control" rows="2" required placeholder="Notification message…"></textarea>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="ap-btn ap-btn-primary w-100"><i class="fas fa-paper-plane me-2"></i>Send</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search notifications…" data-auto-submit>
+    </div>
+    <select name="type" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Types</option>
+      {% for type, label in notification_types %}
+      <option value="{{ type }}" {% if type_filter == type %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if q or type_filter %}
+    <a href="{% url 'admin_panel:notifications' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-bell me-2 text-info"></i>Notifications <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>#</th><th>User</th><th>Title</th><th>Type</th><th>Read</th><th>Created</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for notif in notifications %}
+        <tr>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ notif.pk }}</td>
+          <td><a href="{% url 'admin_panel:user_detail' notif.user.pk %}" style="font-size:.78rem;color:var(--ap-primary)">{{ notif.user.email|truncatechars:24 }}</a></td>
+          <td style="font-size:.82rem;font-weight:600">{{ notif.title|truncatechars:30 }}</td>
+          <td><span class="ap-badge ap-badge-{% if notif.notification_type == 'success' %}success{% elif notif.notification_type == 'error' %}danger{% elif notif.notification_type == 'warning' %}warning{% else %}info{% endif %}">{{ notif.notification_type }}</span></td>
+          <td><span class="ap-badge {% if notif.is_read %}ap-badge-secondary{% else %}ap-badge-danger{% endif %}">{% if notif.is_read %}Read{% else %}Unread{% endif %}</span></td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ notif.created_at|date:"M d, Y" }}</td>
+          <td>
+            <form method="post" action="{% url 'admin_panel:notification_delete' notif.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="ap-btn ap-btn-danger ap-btn-sm ap-btn-icon"
+                data-confirm="Delete this notification? This cannot be undone." title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="ap-empty"><i class="fas fa-bell"></i><p>No notifications found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if notifications.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ notifications.start_index }}–{{ notifications.end_index }} of {{ notifications.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if notifications.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ notifications.previous_page_number }}&q={{ q }}&type={{ type_filter }}">‹</a></li>{% endif %}
+      {% for n in notifications.paginator.page_range %}
+        {% if n == notifications.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= notifications.number|add:"-2" and n <= notifications.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&type={{ type_filter }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if notifications.has_next %}<li class="page-item"><a class="page-link" href="?page={{ notifications.next_page_number }}&q={{ q }}&type={{ type_filter }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Interview Sessions — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-comments"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total Sessions</div></div>
+    </div>
+  </div>
+</div>
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by user or job title…" data-auto-submit>
+    </div>
+    <select name="difficulty" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Difficulties</option>
+      {% for diff, label in difficulties %}
+      <option value="{{ diff }}" {% if difficulty_filter == diff %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if q or difficulty_filter %}
+    <a href="{% url 'admin_panel:interviews' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-comments me-2 text-info"></i>Interview Sessions <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>#</th><th>User</th><th>Job Title</th><th>Difficulty</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {% for session in sessions %}
+        <tr>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ session.pk }}</td>
+          <td><a href="{% url 'admin_panel:user_detail' session.user.pk %}" style="font-size:.78rem;color:var(--ap-primary)">{{ session.user.email|truncatechars:24 }}</a></td>
+          <td style="font-size:.82rem;font-weight:600">{{ session.job_title|truncatechars:30 }}</td>
+          <td><span class="ap-badge ap-badge-secondary">{{ session.difficulty }}</span></td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ session.created_at|date:"M d, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="ap-empty"><i class="fas fa-comments"></i><p>No interview sessions found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if sessions.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ sessions.start_index }}–{{ sessions.end_index }} of {{ sessions.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if sessions.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ sessions.previous_page_number }}&q={{ q }}&difficulty={{ difficulty_filter }}">‹</a></li>{% endif %}
+      {% for n in sessions.paginator.page_range %}
+        {% if n == sessions.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= sessions.number|add:"-2" and n <= sessions.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&difficulty={{ difficulty_filter }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if sessions.has_next %}<li class="page-item"><a class="page-link" href="?page={{ sessions.next_page_number }}&q={{ q }}&difficulty={{ difficulty_filter }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

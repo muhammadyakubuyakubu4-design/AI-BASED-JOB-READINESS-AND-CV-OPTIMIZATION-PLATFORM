@@ -1,0 +1,75 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Career Recommendations — Admin{% endblock %}
+{% block content %}
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by email or target role…">
+    </div>
+    <button type="submit" class="ap-btn ap-btn-primary ap-btn-sm"><i class="fas fa-search"></i> Search</button>
+    {% if q %}
+    <a href="{% url 'admin_panel:recommendations' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="ap-table-header">
+    <span class="ap-table-title">
+      <i class="fas fa-road me-2 text-primary"></i>
+      Career Recommendations <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span>
+    </span>
+    <a href="{% url 'admin_panel:export_career_recs' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-download"></i> Export CSV</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>User</th><th>Target Role</th><th>Skills</th><th>Certifications</th><th>Created</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for rec in recommendations %}
+        <tr>
+          <td>
+            <div style="font-size:.82rem;font-weight:600">{{ rec.user.email }}</div>
+            <div style="font-size:.72rem;color:var(--ap-text-muted)">{{ rec.user.get_full_name }}</div>
+          </td>
+          <td><span class="ap-badge ap-badge-primary">{{ rec.target_role|default:"—" }}</span></td>
+          <td style="font-size:.78rem">{{ rec.recommended_skills|length }} skills</td>
+          <td style="font-size:.78rem">{{ rec.certifications|length }} certs</td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ rec.created_at|date:"M d, Y" }}</td>
+          <td>
+            <form method="post" action="{% url 'admin_panel:recommendation_delete' rec.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="ap-btn ap-btn-danger ap-btn-sm ap-btn-icon" data-confirm="Delete this recommendation?" data-bs-toggle="tooltip" title="Delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="ap-empty"><i class="fas fa-road"></i><p>No recommendations found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if recommendations.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ recommendations.start_index }}–{{ recommendations.end_index }} of {{ recommendations.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if recommendations.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ recommendations.previous_page_number }}&q={{ q }}">‹</a></li>
+      {% endif %}
+      {% for n in recommendations.paginator.page_range %}
+        {% if n == recommendations.number %}
+        <li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= recommendations.number|add:"-2" and n <= recommendations.number|add:"2" %}
+        <li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}">{{ n }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if recommendations.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ recommendations.next_page_number }}&q={{ q }}">›</a></li>
+      {% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

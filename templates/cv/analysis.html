@@ -1,0 +1,2342 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}CV Analysis — CareerAI{% endblock %}
+{% block extra_css %}
+<style>
+.analysis-split-left { padding-right: 12px; }
+.analysis-split-right { padding-left: 12px; }
+
+/* ===== PROFESSIONAL CV PREVIEW PANEL ===== */
+.cv-preview-panel {
+  background: #f0f2f5;
+  border-radius: 12px;
+  border: 1px solid #e4e7eb;
+  height: 100%;
+  min-height: 70vh;
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Preview header toolbar */
+.cv-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #fff;
+  border-bottom: 1px solid #e4e7eb;
+  flex-shrink: 0;
+}
+.cv-preview-header .ph-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.cv-preview-header .ph-info {
+  flex: 1;
+  min-width: 0;
+}
+.cv-preview-header .ph-filename {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-preview-header .ph-meta {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cv-preview-header .ph-meta span { display: inline-flex; align-items: center; gap: 3px; }
+.cv-preview-header .ph-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-secondary); }
+
+/* Zoom controls */
+.cv-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  background: #f0f2f5;
+  border-radius: 7px;
+  padding: 2px;
+}
+.cv-zoom-btn {
+  width: 28px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  color: #5f6b7a;
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.cv-zoom-btn:hover { background: #fff; color: var(--primary); }
+.cv-zoom-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.cv-zoom-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #5f6b7a;
+  min-width: 34px;
+  text-align: center;
+}
+
+/* Preview area (light gray background) */
+.cv-preview-area {
+  flex: 1;
+  background: #f0f2f5;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  position: relative;
+}
+
+/* A4 Paper container */
+.cv-a4-paper {
+  background: #fff;
+  width: 800px;
+  min-height: 1131px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
+  border-radius: 3px;
+  position: relative;
+  transform-origin: top center;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.cv-a4-paper iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 1131px;
+  border: none;
+  display: block;
+}
+
+/* Loading overlay */
+.cv-loading-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(240,242,245,0.92);
+  z-index: 5;
+  border-radius: 12px;
+}
+.cv-loading-overlay .ld-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e4e7eb;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: cvspin 0.6s linear infinite;
+}
+@keyframes cvspin { to { transform: rotate(360deg); } }
+.cv-loading-overlay .ld-text {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.cv-a4-paper.cv-loading iframe { opacity: 0; }
+.cv-a4-paper.cv-loaded iframe { opacity: 1; transition: opacity 0.3s; }
+
+/* Page count badge */
+.cv-page-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.06);
+  color: #5f6b7a;
+  font-size: 0.65rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* ===== COMPACT RIGHT SIDE ===== */
+.analysis-split-right .score-card {
+  padding: 10px 6px;
+  gap: 4px;
+  border-radius: 10px;
+}
+.analysis-split-right .score-card-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+}
+.analysis-split-right .score-donut-wrapper {
+  width: 52px;
+  height: 52px;
+}
+.analysis-split-right .score-donut-value {
+  font-size: 0.82rem;
+}
+.analysis-split-right .score-card .badge {
+  font-size: 0.55rem;
+  padding: 2px 6px;
+}
+
+.analysis-tabs { border-radius: 10px; }
+.analysis-tabs .nav-tabs .nav-link {
+  padding: 10px 12px;
+  font-size: 0.75rem;
+}
+.analysis-tabs .tab-content { padding: 16px; }
+
+/* Score tab compact */
+#ats .circular-progress { width: 110px; height: 110px; }
+#ats .circular-progress .cp-value { font-size: 1.4rem; }
+#ats .circular-progress .cp-label { font-size: 0.6rem; bottom: 6px; }
+#ats .metric-bar { margin-bottom: 8px; }
+#ats .metric-bar-track { height: 6px; }
+#ats .metric-bar-header { font-size: 0.75rem; margin-bottom: 2px; }
+
+/* Section cards compact */
+.section-card { padding: 12px; border-radius: 8px; }
+.section-card-header { font-size: 0.78rem; margin-bottom: 6px; }
+.section-card-body { font-size: 0.78rem; }
+
+/* Tab section title compact */
+.tab-section-title { font-size: 0.7rem; margin-bottom: 10px; }
+
+/* Suggestions compact */
+.suggestion-item { padding: 10px 14px; }
+.suggestion-category { font-size: 0.65rem; }
+.suggestion-text { font-size: 0.8rem; }
+.suggestion-header { margin-bottom: 4px; }
+
+/* Match tab */
+.match-readiness { font-size: 0.8rem; padding: 4px 14px; }
+
+/* Enhance tab */
+.enhance-preview { padding: 12px; font-size: 0.8rem; }
+.enhance-select { font-size: 0.78rem; padding: 4px 8px; }
+
+/* Before/after compact */
+.ba-item { padding: 8px 10px; }
+.ba-text { font-size: 0.78rem; }
+.ba-label { font-size: 0.65rem; }
+
+/* Theme options compact */
+.theme-option { padding: 12px; }
+.theme-option-icon { font-size: 1.2rem; }
+.theme-option-label { font-size: 0.78rem; }
+.theme-option-desc { font-size: 0.68rem; }
+
+/* Input tab */
+#input .form-control, #input .form-select { font-size: 0.8rem; padding: 6px 10px; }
+#input .form-label { font-size: 0.75rem; margin-bottom: 2px; }
+
+/* Strength/weakness compact */
+.strength-item, .weakness-item { font-size: 0.78rem; padding: 4px 0; }
+
+/* Strength/weakness section cards in ATS tab */
+#ats .strength-item, #ats .weakness-item { padding: 3px 0; font-size: 0.75rem; }
+
+/* Keyword clouds compact */
+.keyword-tag { font-size: 0.7rem; padding: 2px 6px; }
+
+/* ========== BEAUTIFIED TABS ========== */
+
+/* --- MATCH TAB --- */
+#match .jd-card {
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+}
+#match .jd-card textarea {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  min-height: 160px;
+  transition: border-color 0.2s;
+}
+#match .jd-card textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+#match .match-score-ring {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#match .match-score-ring svg { transform: rotate(-90deg); }
+#match .match-score-ring .msr-bg { fill: none; stroke: var(--border-color); stroke-width: 8; }
+#match .match-score-ring .msr-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.2s ease; }
+#match .match-score-ring .msr-value {
+  position: absolute;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+#match .match-score-ring .msr-label {
+  position: absolute;
+  bottom: 14px;
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+#match .match-breakdown { padding: 12px; }
+#match .match-breakdown-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.78rem; border-bottom: 1px solid var(--border-color); }
+#match .match-breakdown-item:last-child { border-bottom: none; }
+#match .match-breakdown-bar { flex: 1; height: 4px; background: var(--border-color); border-radius: 3px; margin: 0 10px; overflow: hidden; }
+#match .match-breakdown-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+#match .keyword-tag.match-skill { background: #e8f5ee; color: #1a8f5c; }
+#match .keyword-tag.missing-skill { background: #fff3f3; color: #dc3545; }
+#match .match-placeholder-icon { font-size: 2.5rem; color: var(--text-secondary); opacity: 0.4; }
+#match .match-result-card { animation: fadeSlideUp 0.4s ease; }
+
+/* --- SUGGESTIONS TAB --- */
+
+/* AI Feedback Card */
+#suggestions .ai-feedback-enhanced {
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(13,110,253,0.04), rgba(26,143,92,0.04));
+  position: relative;
+  overflow: hidden;
+}
+#suggestions .ai-feedback-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #0d6efd, var(--primary));
+  border-radius: 4px 0 0 4px;
+}
+#suggestions .ai-feedback-enhanced .af-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 0;
+}
+#suggestions .ai-feedback-enhanced .af-header .af-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(13,110,253,0.12), rgba(13,110,253,0.06));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: #0d6efd;
+}
+#suggestions .ai-feedback-enhanced .af-header .af-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+#suggestions .ai-feedback-enhanced .af-body {
+  padding: 10px 18px 16px;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+/* Suggestion list items */
+#suggestions .suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#suggestions .suggestions-list .suggestion-item {
+  position: relative;
+  border-left: 3px solid;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: 0 10px 10px 0;
+  transition: all 0.25s;
+  box-shadow: var(--shadow);
+}
+#suggestions .suggestions-list .suggestion-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+#suggestions .suggestion-item.priority-high { border-left-color: #dc3545; }
+#suggestions .suggestion-item.priority-medium { border-left-color: #f59e0b; }
+#suggestions .suggestion-item.priority-low { border-left-color: #6c757d; }
+#suggestions .suggestion-item .suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+#suggestions .suggestion-item .suggestion-category {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+#suggestions .suggestion-item .suggestion-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+#suggestions .suggestion-item .suggestion-impact {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#suggestions .suggestion-item .suggestion-impact i { color: #f59e0b; }
+
+/* Tip cards */
+#suggestions .tip-card {
+  transition: all 0.25s;
+  cursor: default;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+}
+#suggestions .tip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(26,143,92,0.15);
+}
+#suggestions .tip-card .tip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+#suggestions .tip-card .tip-header .tip-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#suggestions .tip-card .tip-header .tip-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+#suggestions .tip-card .tip-body {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+#suggestions .tip-card .tip-action {
+  margin-top: 10px;
+  padding: 6px 14px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Before/after box */
+#suggestions .ba-box {
+  background: var(--bg-body);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+}
+#suggestions .ba-box .ba-item {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 0;
+}
+#suggestions .ba-box .ba-before {
+  background: rgba(220,53,69,0.04);
+  border-bottom: 1px dashed var(--border-color);
+}
+#suggestions .ba-box .ba-after {
+  background: rgba(26,143,92,0.04);
+}
+#suggestions .ba-box .ba-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+#suggestions .ba-box .ba-before .ba-label { color: #dc3545; }
+#suggestions .ba-box .ba-after .ba-label { color: var(--primary); }
+#suggestions .ba-box .ba-text {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+#suggestions .ba-box .ba-arrow {
+  text-align: center;
+  padding: 3px 0;
+  font-size: 0.7rem;
+  color: var(--primary);
+  background: var(--bg-card);
+  border-bottom: 1px dashed var(--border-color);
+}
+
+/* Re-analyze card */
+#suggestions .reanalyze-card {
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  text-align: center;
+  padding: 28px;
+  background: var(--bg-card);
+}
+#suggestions .reanalyze-card .ra-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--bg-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin: 0 auto 12px;
+}
+
+/* Empty suggestions state */
+#suggestions .empty-suggestions {
+  padding: 32px;
+  text-align: center;
+}
+#suggestions .empty-suggestions .empty-icon-lg {
+  font-size: 2.5rem;
+  color: var(--primary);
+  opacity: 0.15;
+  margin-bottom: 12px;
+}
+#suggestions .empty-suggestions p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* --- ENHANCE TAB --- */
+#enhance .enhance-input-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+#enhance .enhance-input-card .form-group {
+  margin-bottom: 16px;
+}
+#enhance .enhance-input-card .form-group:last-of-type { margin-bottom: 0; }
+#enhance .enhance-input-card .form-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+#enhance .enhance-input-card .form-group label .label-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+}
+#enhance .enhance-input-card .form-control,
+#enhance .enhance-input-card .form-select {
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  transition: all 0.2s;
+  background: var(--bg-body);
+}
+#enhance .enhance-input-card .form-control:focus,
+#enhance .enhance-input-card .form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  background: var(--bg-card);
+}
+#enhance .enhance-input-card textarea.form-control {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.6;
+}
+#enhance .enhance-input-card .char-counter {
+  text-align: right;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  opacity: 0.7;
+}
+#enhance .enhance-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 8px 22px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s;
+}
+#enhance .enhance-btn.btn-success {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border: none;
+  box-shadow: 0 4px 12px rgba(26,143,92,0.25);
+}
+#enhance .enhance-btn.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(26,143,92,0.35);
+}
+#enhance .enhance-btn.btn-success:active { transform: translateY(0); }
+#enhance .enhance-btn.btn-outline-secondary {
+  border: 1.5px solid var(--border-color);
+  color: var(--text-secondary);
+}
+#enhance .enhance-btn.btn-outline-secondary:hover {
+  border-color: var(--text-secondary);
+  background: var(--bg-body);
+  color: var(--text-primary);
+}
+#enhance .enhance-result-area {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#enhance .enhance-result-area .enhance-preview {
+  flex: 1;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  transition: all 0.3s;
+  min-height: 200px;
+  position: relative;
+  overflow: hidden;
+}
+#enhance .enhance-result-area .enhance-preview:not(.enhance-preview-empty) {
+  border-color: var(--primary);
+  border-style: solid;
+  box-shadow: inset 0 0 0 1px rgba(26,143,92,0.08);
+}
+#enhance .enhance-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  min-height: 200px;
+}
+#enhance .enhance-preview-empty .empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: var(--primary);
+  margin-bottom: 14px;
+}
+#enhance .enhance-preview-empty .empty-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+#enhance .enhance-preview-empty .empty-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+#enhance .enhance-preview-empty .empty-step .step-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+#enhance .enhance-preview-content {
+  padding: 16px;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+#enhance .enhance-preview-content p:last-child { margin-bottom: 0; }
+#enhance .enhance-result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg-body);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+#enhance .enhance-result-toolbar .toolbar-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+#enhance .enhance-result-toolbar .toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+#enhance .enhance-result-toolbar .toolbar-btn {
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+#enhance .enhance-result-toolbar .toolbar-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
+}
+#enhance .enhance-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+#enhance .enhance-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+#enhance .enhance-loading .loading-pulse {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+#enhance .enhance-loading .loading-pulse span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+#enhance .enhance-loading .loading-pulse span:nth-child(2) { animation-delay: 0.2s; }
+#enhance .enhance-loading .loading-pulse span:nth-child(3) { animation-delay: 0.4s; }
+#enhance .enhance-loading p { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }
+@keyframes pulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- INPUT TAB --- */
+#input .input-section-card {
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+#input .input-section-card:hover { border-color: rgba(26,143,92,0.2); }
+#input .input-section-card .tab-section-title { margin-bottom: 12px; }
+#input .input-field-row { margin-bottom: 10px; }
+#input .input-field-row:last-child { margin-bottom: 0; }
+#input .input-field-row label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  display: block;
+}
+#input .input-field-row .form-control,
+#input .input-field-row .form-select {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#input .input-field-row .form-control:focus,
+#input .input-field-row .form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+#input .skills-area {
+  min-height: 60px;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+}
+#input .skill-inline .skill-tag {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+#input .cert-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-body);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+}
+
+/* --- THEME TAB --- */
+#theme .theme-option {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 16px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.25s ease;
+  background: var(--bg-card);
+}
+#theme .theme-option::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#theme .theme-option.theme-light::before { background: linear-gradient(135deg, #fff, #f0f4f8); }
+#theme .theme-option.theme-dark::before { background: linear-gradient(135deg, #1a1d27, #0f1117); }
+#theme .theme-option.theme-modern::before { background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+#theme .theme-option:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+#theme .theme-option.active {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+#theme .theme-option.active::after {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 0.65rem;
+  color: var(--primary);
+  background: var(--primary-light);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#theme .theme-option-icon { position: relative; z-index: 1; font-size: 1.6rem; margin-bottom: 6px; }
+#theme .theme-option-label { position: relative; z-index: 1; font-size: 0.82rem; font-weight: 600; }
+#theme .theme-option-desc { position: relative; z-index: 1; font-size: 0.68rem; color: var(--text-secondary); }
+#theme .theme-option .theme-preview-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-slide-up { animation: fadeSlideUp 0.35s ease; }
+
+@media (max-width: 991.98px) {
+  .analysis-split-left { padding-right: 0; margin-bottom: 1rem; }
+  .analysis-split-right { padding-left: 0; }
+  .cv-preview-panel { min-height: 50vh; position: static; }
+  .cv-a4-paper { width: 100%; min-height: auto; }
+  .cv-a4-paper iframe { min-height: 500px; }
+  .cv-preview-area { padding: 12px 8px; }
+  .cv-preview-header { flex-wrap: wrap; gap: 6px; }
+  .cv-preview-header .ph-info { order: 2; width: 100%; }
+  .analysis-split-right .score-card { padding: 12px 8px; }
+  .analysis-split-right .score-donut-wrapper { width: 64px; height: 64px; }
+  .analysis-split-right .score-donut-value { font-size: 1rem; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1">
+        <i class="fas fa-file-alt text-success me-2"></i>{{ cv_upload.original_filename }}
+      </h5>
+      <span class="text-muted small">Analyzed {{ analysis.analyzed_at|date:"F d, Y" }}</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'cv_analyzer:download' cv_upload.pk %}" class="btn btn-primary btn-sm shadow-sm">
+        <i class="fas fa-file-word me-1"></i>Download Edited CV
+      </a>
+      <a href="{% url 'cv_analyzer:export' cv_upload.pk %}" class="btn btn-outline-success btn-sm">
+        <i class="fas fa-file-pdf me-1"></i>Export AI Report
+      </a>
+      <div class="dropdown d-inline-block">
+        <button class="btn btn-outline-warning btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-file me-1"></i>Resume
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><h6 class="dropdown-header">Choose Template</h6></li>
+          <li><a class="dropdown-item" href="{% url 'cv_analyzer:resume_templates' %}?cv={{ cv_upload.pk }}&template=modern"><i class="fas fa-leaf me-2 text-success"></i>Modern</a></li>
+          <li><a class="dropdown-item" href="{% url 'cv_analyzer:resume_templates' %}?cv={{ cv_upload.pk }}&template=professional"><i class="fas fa-briefcase me-2 text-primary"></i>Professional</a></li>
+          <li><a class="dropdown-item" href="{% url 'cv_analyzer:resume_templates' %}?cv={{ cv_upload.pk }}&template=creative"><i class="fas fa-paint-brush me-2 text-danger"></i>Creative</a></li>
+          <li><a class="dropdown-item" href="{% url 'cv_analyzer:resume_templates' %}?cv={{ cv_upload.pk }}&template=elegant"><i class="fas fa-star me-2 text-warning"></i>Elegant (New)</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'cv_analyzer:resume_templates' %}?cv={{ cv_upload.pk }}"><i class="fas fa-th me-2"></i>All Templates</a></li>
+        </ul>
+      </div>
+      <a href="{% url 'cv_analyzer:reanalyze' cv_upload.pk %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-sync me-1"></i>Re-analyze
+      </a>
+      <a href="{% url 'cv_analyzer:history' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  <!-- Split View: CV on Left, Analysis on Right -->
+  <div class="row g-0">
+    <!-- Left: CV Previewer -->
+    <div class="col-lg-5 analysis-split-left">
+      <div class="cv-preview-panel" id="cvPreviewPanel">
+        <!-- Header toolbar -->
+        <div class="cv-preview-header">
+          <div class="ph-icon"><i class="fas fa-file-alt"></i></div>
+          <div class="ph-info">
+            <div class="ph-filename" title="{{ cv_upload.original_filename }}">{{ cv_upload.original_filename }}</div>
+            <div class="ph-meta">
+              <span><i class="fas fa-file"></i>{{ cv_upload.get_file_type_display|upper }}</span>
+              <span class="dot"></span>
+              <span><i class="far fa-calendar"></i>{{ cv_upload.uploaded_at|date:"M d, Y" }}</span>
+              <span class="dot"></span>
+              <span><i class="far fa-file"></i><span id="cvPageCount">1</span> page{% if cvPageCount != 1 %}s{% endif %}</span>
+            </div>
+          </div>
+          <div class="cv-zoom-controls">
+            <button class="cv-zoom-btn" onclick="cvZoomOut()" title="Zoom Out"><i class="fas fa-minus"></i></button>
+            <span class="cv-zoom-label" id="cvZoomLabel">100%</span>
+            <button class="cv-zoom-btn" onclick="cvZoomIn()" title="Zoom In"><i class="fas fa-plus"></i></button>
+            <button class="cv-zoom-btn" onclick="cvZoomFitWidth()" title="Fit Width"><i class="fas fa-arrows-left-right"></i></button>
+            <button class="cv-zoom-btn active" onclick="cvZoomFitPage()" title="Fit Page"><i class="fas fa-expand"></i></button>
+          </div>
+        </div>
+
+        <!-- Preview area -->
+        <div class="cv-preview-area" id="cvPreviewArea">
+          <div class="cv-loading-overlay" id="cvLoading">
+            <div class="ld-spinner"></div>
+            <div class="ld-text">Loading document...</div>
+          </div>
+          <div class="cv-a4-paper cv-loading" id="cvA4Paper">
+            <iframe src="{% url 'cv_analyzer:render' cv_upload.pk %}" id="cvPreviewFrame" title="CV Preview" onload="onCvLoaded()"></iframe>
+          </div>
+          <div class="cv-page-badge" id="cvPageBadge">Page 1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Analysis -->
+    <div class="col-lg-7 analysis-split-right">
+
+      <!-- Score Cards Row -->
+      <div class="row g-2 mb-3">
+        <div class="col-4 col-lg">
+          <div class="score-card overall">
+            <div class="score-card-label">Overall</div>
+            <div class="score-donut-wrapper">
+              <canvas id="overallChart" width="100" height="100"></canvas>
+              <div class="score-donut-value">{{ analysis.overall_score|floatformat:0 }}</div>
+            </div>
+            <span class="badge bg-{{ score_labels.overall.1 }}">{{ score_labels.overall.0 }}</span>
+          </div>
+        </div>
+        <div class="col-4 col-lg">
+          <div class="score-card">
+            <div class="score-card-label">ATS</div>
+            <div class="score-donut-wrapper">
+              <canvas id="atsChart" width="100" height="100"></canvas>
+              <div class="score-donut-value">{{ analysis.ats_score|floatformat:0 }}</div>
+            </div>
+            <span class="badge bg-{{ score_labels.ats.1 }}">{{ score_labels.ats.0 }}</span>
+          </div>
+        </div>
+        <div class="col-4 col-lg">
+          <div class="score-card">
+            <div class="score-card-label">Grammar</div>
+            <div class="score-donut-wrapper">
+              <canvas id="grammarChart" width="100" height="100"></canvas>
+              <div class="score-donut-value">{{ analysis.grammar_score|floatformat:0 }}</div>
+            </div>
+            <span class="badge bg-{{ score_labels.grammar.1 }}">{{ score_labels.grammar.0 }}</span>
+          </div>
+        </div>
+        <div class="col-4 col-lg">
+          <div class="score-card">
+            <div class="score-card-label">Keywords</div>
+            <div class="score-donut-wrapper">
+              <canvas id="keywordChart" width="100" height="100"></canvas>
+              <div class="score-donut-value">{{ analysis.keyword_score|floatformat:0 }}</div>
+            </div>
+            <span class="badge bg-{{ score_labels.keyword.1 }}">{{ score_labels.keyword.0 }}</span>
+          </div>
+        </div>
+        <div class="col-4 col-lg">
+          <div class="score-card">
+            <div class="score-card-label">Format</div>
+            <div class="score-donut-wrapper">
+              <canvas id="formatChart" width="100" height="100"></canvas>
+              <div class="score-donut-value">{{ analysis.format_score|floatformat:0 }}</div>
+            </div>
+            <span class="badge bg-{{ score_labels.format.1 }}">{{ score_labels.format.0 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabbed Interface -->
+      <div class="analysis-tabs">
+        <ul class="nav nav-tabs" id="analysisTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="ats-tab" data-bs-toggle="tab" data-bs-target="#ats" type="button" role="tab">
+              <i class="fas fa-shield-alt me-1"></i>Score
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="match-tab" data-bs-toggle="tab" data-bs-target="#match" type="button" role="tab">
+              <i class="fas fa-briefcase me-1"></i>Match
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="suggestions-tab" data-bs-toggle="tab" data-bs-target="#suggestions" type="button" role="tab">
+              <i class="fas fa-lightbulb me-1"></i>Suggestions
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="enhance-tab" data-bs-toggle="tab" data-bs-target="#enhance" type="button" role="tab">
+              <i class="fas fa-magic me-1"></i>Enhance
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="input-tab" data-bs-toggle="tab" data-bs-target="#input" type="button" role="tab">
+              <i class="fas fa-user-edit me-1"></i>Input
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme" type="button" role="tab">
+              <i class="fas fa-palette me-1"></i>Theme
+            </button>
+          </li>
+          {% if bullet_feedback %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="bullets-tab" data-bs-toggle="tab" data-bs-target="#bullets" type="button" role="tab">
+              <i class="fas fa-list-ul me-1"></i>Bullets
+              <span class="badge bg-primary ms-1" style="font-size:.65rem">{{ bullet_feedback|length }}</span>
+            </button>
+          </li>
+          {% endif %}
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- ===================== TAB 1: ATS SCORE ===================== -->
+          <div class="tab-pane fade show active" id="ats" role="tabpanel">
+        <div class="d-flex align-items-start gap-4 mb-3">
+          <div class="text-center flex-shrink-0">
+            <div class="circular-progress" style="width:100px;height:100px;">
+              <svg width="100" height="100" viewBox="0 0 160 160">
+                <circle class="cp-bg" cx="80" cy="80" r="68" stroke-width="10"/>
+                <circle class="cp-fill" cx="80" cy="80" r="68" stroke-width="10"
+                  stroke="{{ ats_color|default:'#1a8f5c' }}"
+                  stroke-dasharray="427"
+                  stroke-dashoffset="{{ ats_offset|default:'85' }}"/>
+              </svg>
+              <div class="cp-value">{{ analysis.ats_score|floatformat:0 }}<span style="font-size:0.8rem;">%</span></div>
+              <div class="cp-label">ATS</div>
+            </div>
+            <div class="mt-1">
+              <span class="badge bg-{{ score_labels.ats.1 }}">{{ score_labels.ats.0 }}</span>
+            </div>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="tab-section-title mb-2">Score Breakdown</div>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">ATS Compatibility</span>
+                    <span class="metric-bar-value text-{{ score_labels.ats.1 }}">{{ analysis.ats_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-{{ score_labels.ats.1 }}" style="width:{{ analysis.ats_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">Format</span>
+                    <span class="metric-bar-value text-{{ score_labels.format.1 }}">{{ analysis.format_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-{{ score_labels.format.1 }}" style="width:{{ analysis.format_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">Keyword</span>
+                    <span class="metric-bar-value text-{{ score_labels.keyword.1 }}">{{ analysis.keyword_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-{{ score_labels.keyword.1 }}" style="width:{{ analysis.keyword_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">Grammar</span>
+                    <span class="metric-bar-value text-{{ score_labels.grammar.1 }}">{{ analysis.grammar_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-{{ score_labels.grammar.1 }}" style="width:{{ analysis.grammar_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">Experience</span>
+                    <span class="metric-bar-value">{{ experience_score|default:analysis.ats_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-primary" style="width:{{ experience_score|default:analysis.ats_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-bar">
+                  <div class="metric-bar-header">
+                    <span class="metric-bar-label">Education</span>
+                    <span class="metric-bar-value">{{ education_score|default:analysis.format_score|floatformat:0 }}%</span>
+                  </div>
+                  <div class="metric-bar-track">
+                    <div class="metric-bar-fill bg-info" style="width:{{ education_score|default:analysis.format_score }}%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-lg-6">
+            <div class="tab-section-title">Resume Section Analysis</div>
+            <!-- Resume Section Analysis (parser-driven; click a row to load it in the Enhance tab) -->
+            {% for section_name, section_content in analysis.extracted_sections.items %}
+            <div class="d-flex align-items-center gap-2 mb-2 section-row" role="button"
+                 onclick="switchEnhanceTab('{{ section_name }}')" title="Load in the Enhance tab and improve it">
+              {% if section_content %}
+                <i class="fas fa-check-circle text-success"></i>
+              {% else %}
+                <i class="fas fa-times-circle text-danger"></i>
+              {% endif %}
+              <span style="font-size:0.85rem;font-weight:500;text-transform:capitalize;">{{ section_name }}</span>
+              {% if section_content %}
+                <small class="text-muted">({{ section_content|length }} chars)</small>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger" style="font-size:0.7rem;">Missing</span>
+              {% endif %}
+              <small class="ms-auto text-primary section-row-hint"><i class="fas fa-wand-magic-sparkles fa-xs"></i> Enhance</small>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="col-lg-6">
+            <div class="tab-section-title">Strengths & Weaknesses</div>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <div class="section-card">
+                  <div class="section-card-header">
+                    <i class="fas fa-thumbs-up text-success"></i> Strengths
+                  </div>
+                  <div class="section-card-body">
+                    {% if analysis.ats_score >= 60 %}
+                    <div class="strength-item"><i class="fas fa-check-circle fa-xs"></i> Strong ATS compatibility</div>
+                    {% endif %}
+                    {% if analysis.format_score >= 60 %}
+                    <div class="strength-item"><i class="fas fa-check-circle fa-xs"></i> Good format & structure</div>
+                    {% endif %}
+                    {% if analysis.grammar_score >= 60 %}
+                    <div class="strength-item"><i class="fas fa-check-circle fa-xs"></i> Professional language</div>
+                    {% endif %}
+                    {% if analysis.extracted_skills|length >= 5 %}
+                    <div class="strength-item"><i class="fas fa-check-circle fa-xs"></i> {{ analysis.extracted_skills|length }} skills detected</div>
+                    {% endif %}
+                    {% if analysis.overall_score < 60 or not analysis.extracted_skills %}
+                    <div class="strength-item"><i class="fas fa-info-circle text-muted fa-xs"></i> Complete your CV to see strengths</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="section-card">
+                  <div class="section-card-header">
+                    <i class="fas fa-thumbs-down text-danger"></i> Weaknesses
+                  </div>
+                  <div class="section-card-body">
+                    {% if analysis.ats_score < 60 %}
+                    <div class="weakness-item"><i class="fas fa-exclamation-circle fa-xs"></i> Low ATS score</div>
+                    {% endif %}
+                    {% if analysis.format_score < 60 %}
+                    <div class="weakness-item"><i class="fas fa-exclamation-circle fa-xs"></i> Weak format structure</div>
+                    {% endif %}
+                    {% if analysis.keyword_score < 60 %}
+                    <div class="weakness-item"><i class="fas fa-exclamation-circle fa-xs"></i> Low keyword density</div>
+                    {% endif %}
+                    {% for ms in analysis.missing_sections %}
+                    <div class="weakness-item"><i class="fas fa-exclamation-circle fa-xs"></i> Missing {{ ms|title }} section</div>
+                    {% endfor %}
+                    {% if not analysis.missing_sections and analysis.ats_score >= 60 %}
+                    <div class="strength-item"><i class="fas fa-check-circle fa-xs text-success"></i> No major weaknesses detected</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommended Jobs (Auto-generated from CV skills) -->
+        {% if recommendations and recommendations.job_titles %}
+        <div class="tab-section-title mt-4 mb-2"><i class="fas fa-briefcase text-primary me-2"></i>Recommended Job Matches</div>
+        <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(to right, #f8f9fa, #ffffff);">
+          <div class="card-body">
+            <p class="text-muted small mb-3">Based on your CV's skills and qualifications, our AI automatically matched you with these target roles:</p>
+            <div class="d-flex flex-wrap gap-2">
+              {% for job in recommendations.job_titles|slice:":5" %}
+              <span class="badge" style="background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; font-size: 0.85rem; padding: 0.5rem 0.8rem; border: 1px solid rgba(13, 110, 253, 0.2);">
+                <i class="fas fa-search me-1"></i> {{ job }}
+              </span>
+              {% endfor %}
+            </div>
+            <div class="mt-4">
+              <h6 class="mb-2" style="font-size:0.85rem; font-weight:600; color:#495057;"><i class="fas fa-building me-1"></i> Top Hiring Companies</h6>
+              <div class="d-flex flex-column gap-2">
+                {% for company in recommendations.target_companies %}
+                <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05);">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width:32px; height:32px;">
+                      <i class="fas fa-building text-secondary fa-sm"></i>
+                    </div>
+                    <span class="fw-medium" style="font-size:0.85rem;">{{ company.name }}</span>
+                  </div>
+                  <a href="{{ company.url }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3" style="font-size:0.75rem;">Apply <i class="fas fa-external-link-alt ms-1"></i></a>
+                </div>
+                {% empty %}
+                <span class="text-muted small">No specific companies found.</span>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+              <a href="{% url 'career:index' %}" class="btn btn-sm btn-outline-primary rounded-pill px-4">View Full Career Report <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- ATS Improvement Suggestions -->
+        {% if analysis.suggestions %}
+        <div class="tab-section-title">ATS Improvement Suggestions</div>
+        <div class="row g-2 mb-3">
+          {% for sug in analysis.suggestions|slice:":4" %}
+          <div class="col-md-6">
+            <div class="section-card">
+              <div class="section-card-header">
+                <span class="badge bg-{% if sug.priority == 'high' %}danger{% elif sug.priority == 'medium' %}warning{% else %}secondary{% endif %} me-2" style="font-size:0.65rem;">{{ sug.priority|default:'medium'|title }}</span>
+                {{ sug.category|default:"General" }}
+              </div>
+              <div class="section-card-body">
+                <p class="mb-1">{{ sug.suggestion }}</p>
+                {% if sug.impact %}<small class="text-muted"><i class="fas fa-bolt text-warning me-1"></i>{{ sug.impact }}</small>{% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if analysis.ai_feedback %}
+        <div class="tab-section-title">AI Detailed Feedback</div>
+        <div class="ai-summary-box">
+          <div class="ai-summary-header"><i class="fas fa-robot me-2"></i>AI Career Coach Analysis</div>
+          <p class="mb-0" style="font-size:0.85rem;line-height:1.7;">{{ analysis.ai_feedback }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ===================== TAB 2: JOB DESCRIPTION MATCH ===================== -->
+      <div class="tab-pane fade" id="match" role="tabpanel">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="jd-card">
+              <div class="tab-section-title mb-2"><i class="fas fa-paste me-1"></i>Paste Job Description</div>
+              <textarea class="form-control" id="jdText" rows="7" placeholder="Paste the full job description here to check how well your CV matches..."></textarea>
+              <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-success" id="runMatchBtn" onclick="runJobMatch({{ cv_upload.pk }})">
+                  <i class="fas fa-search me-1"></i>Calculate Match
+                </button>
+                <button class="btn btn-outline-secondary" onclick="document.getElementById('jdText').value=''">
+                  <i class="fas fa-times me-1"></i>Clear
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div id="matchResults" style="display:none;">
+              <div class="match-result-card">
+                <div class="tab-section-title mb-2"><i class="fas fa-chart-pie me-1"></i>Match Results</div>
+                <div class="d-flex align-items-start gap-3 mb-3">
+                  <div class="match-score-ring flex-shrink-0">
+                    <svg width="100" height="100" viewBox="0 0 160 160">
+                      <circle class="msr-bg" cx="80" cy="80" r="68"/>
+                      <circle class="msr-fill" id="matchScoreCircle" cx="80" cy="80" r="68" stroke="#1a8f5c" stroke-dasharray="427" stroke-dashoffset="427"/>
+                    </svg>
+                    <div class="msr-value" id="matchScoreNum">0%</div>
+                    <div class="msr-label">Match</div>
+                  </div>
+                  <div class="flex-grow-1 match-breakdown">
+                    <div id="matchReadinessBadge" class="mb-2"></div>
+                    <div class="match-breakdown-item">
+                      <span>Matching Skills</span>
+                      <span id="matchSkillsCount" class="text-success fw-semibold">0</span>
+                    </div>
+                    <div class="match-breakdown-item">
+                      <span>Missing Skills</span>
+                      <span id="missingSkillsCount" class="text-danger fw-semibold">0</span>
+                    </div>
+                    <div class="match-breakdown-item">
+                      <span>Readiness</span>
+                      <span id="matchReadinessLevel" class="text-secondary fw-semibold">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="section-card mb-2" id="matchSkillsBox" style="display:none;">
+                  <div class="section-card-header"><i class="fas fa-check-circle text-success"></i> Matching Skills</div>
+                  <div class="keyword-cloud" id="matchSkillsList"></div>
+                </div>
+                <div class="section-card mb-2" id="missingSkillsBox" style="display:none;">
+                  <div class="section-card-header"><i class="fas fa-times-circle text-danger"></i> Missing Skills</div>
+                  <div class="keyword-cloud" id="missingSkillsList"></div>
+                </div>
+                <div class="section-card mb-2" id="matchSuggestionsBox" style="display:none;">
+                  <div class="section-card-header"><i class="fas fa-lightbulb text-warning"></i> Recommendations</div>
+                  <div id="matchSuggestionsList"></div>
+                </div>
+                <div class="section-card" id="matchAiBox" style="display:none;">
+                  <div class="section-card-header"><i class="fas fa-robot text-primary"></i> AI Assessment</div>
+                  <div class="section-card-body" id="matchAiSummary"></div>
+                </div>
+              </div>
+              <div id="matchLoading" style="display:none;" class="text-center py-4">
+                <div class="enhance-spinner"></div>
+                <p class="text-muted mt-2 small">Analyzing your CV against the job description...</p>
+              </div>
+            </div>
+            <div id="matchPlaceholder" class="text-center py-5">
+              <i class="fas fa-briefcase match-placeholder-icon mb-3"></i>
+              <p class="text-muted small mb-0">Paste a job description and click <strong>"Calculate Match"</strong></p>
+              <p class="text-muted small">to see how your CV fits the role.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 3: SUGGESTIONS ===================== -->
+      <div class="tab-pane fade" id="suggestions" role="tabpanel">
+        <div class="row g-4">
+
+          <!-- AI Feedback -->
+          {% if analysis.ai_feedback %}
+          <div class="col-12">
+            <div class="ai-feedback-enhanced">
+              <div class="af-header">
+                <div class="af-icon"><i class="fas fa-robot"></i></div>
+                <div class="af-title">AI-Powered Assessment</div>
+                <span class="badge bg-primary-subtle text-primary ms-auto" style="font-size:0.6rem;font-weight:500;padding:3px 8px;letter-spacing:0.03em;">{{ ai_provider }}</span>
+              </div>
+              <div class="af-body">{{ analysis.ai_feedback }}</div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- AI Improvements -->
+          {% if analysis.improvements %}
+          <div class="{% if not analysis.suggestions %}col-12{% else %}col-lg-6{% endif %}">
+            <div class="tab-section-title"><i class="fas fa-microchip text-primary me-1"></i>AI-Powered Insights</div>
+            <div class="suggestions-list">
+              {% for imp in analysis.improvements %}
+              <div class="suggestion-item" style="border-left-color:#0d6efd;">
+                <div class="suggestion-header">
+                  <span class="suggestion-category"><i class="fas fa-robot text-primary me-1"></i>AI Suggestion</span>
+                </div>
+                <p class="suggestion-text">{{ imp }}</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Re-analyze prompt if AI is missing -->
+          {% if not analysis.ai_feedback and not analysis.improvements %}
+          <div class="col-12">
+            <div class="reanalyze-card">
+              <div class="ra-icon"><i class="fas fa-robot"></i></div>
+              <p class="fw-semibold mb-1" style="font-size:0.9rem;">AI Suggestions Not Available</p>
+              <p class="text-muted mb-3" style="font-size:0.78rem;">AI-powered suggestions were not generated for this analysis. Re-analyze to get AI insights.</p>
+              <a href="{% url 'cv_analyzer:reanalyze' cv_upload.pk %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-sync me-1"></i>Re-analyze with AI
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Rule-based Suggestions -->
+          <div class="{% if analysis.improvements %}col-lg-6{% else %}col-12{% endif %}">
+            <div class="tab-section-title"><i class="fas fa-clipboard-list me-1"></i>Improvement Suggestions</div>
+            {% if analysis.suggestions %}
+            <div class="suggestions-list">
+              {% for sug in analysis.suggestions %}
+              <div class="suggestion-item priority-{{ sug.priority|default:'medium' }}">
+                <div class="suggestion-header">
+                  <span class="suggestion-category">{{ sug.category|default:"General" }}</span>
+                  <span class="badge bg-{% if sug.priority == 'high' %}danger{% elif sug.priority == 'medium' %}warning{% else %}secondary{% endif %}-subtle text-{% if sug.priority == 'high' %}danger{% elif sug.priority == 'medium' %}warning{% else %}secondary{% endif %}" style="font-size:0.6rem;font-weight:600;padding:2px 8px;">{{ sug.priority|default:"medium"|title }}</span>
+                </div>
+                <p class="suggestion-text">{{ sug.suggestion }}</p>
+                {% if sug.impact %}<div class="suggestion-impact"><i class="fas fa-bolt"></i>{{ sug.impact }}</div>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-suggestions">
+              <div class="empty-icon-lg"><i class="fas fa-check-circle"></i></div>
+              <p class="mb-0">Great CV! No major improvements suggested.</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Optimization Tips -->
+          <div class="col-lg-6">
+            <div class="tab-section-title"><i class="fas fa-lightbulb me-1"></i>Resume Optimization Tips</div>
+
+            <div class="tip-card mb-3">
+              <div class="tip-header">
+                <div class="tip-icon" style="background:rgba(13,110,253,0.1);"><i class="fas fa-file-alt text-primary" style="font-size:0.75rem;"></i></div>
+                <div class="tip-title">Better Summary</div>
+              </div>
+              <div class="tip-body">
+                A professional summary should be 2-3 sentences highlighting your key qualifications, experience level, and career goals. Keep it concise and tailored.
+              </div>
+              <button class="tip-action btn btn-sm btn-outline-primary" onclick="switchEnhanceTab('summary')">
+                <i class="fas fa-magic"></i>Generate Summary
+              </button>
+            </div>
+
+            <div class="tip-card mb-3">
+              <div class="tip-header">
+                <div class="tip-icon" style="background:rgba(26,143,92,0.1);"><i class="fas fa-briefcase text-success" style="font-size:0.75rem;"></i></div>
+                <div class="tip-title">Better Experience</div>
+              </div>
+              <div class="tip-body">
+                Use action verbs and quantify achievements. Instead of "Responsible for..." try "Led team of 5 to increase sales by 25%."
+              </div>
+              <div class="ba-box">
+                <div class="ba-item ba-before">
+                  <div class="ba-label">Before</div>
+                  <div class="ba-text">Responsible for managing a team and handling customer accounts.</div>
+                </div>
+                <div class="ba-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="ba-item ba-after">
+                  <div class="ba-label">After</div>
+                  <div class="ba-text">Led a team of 8 account managers, driving 30% growth in customer retention and $2M in recurring revenue.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tip-card mb-3">
+              <div class="tip-header">
+                <div class="tip-icon" style="background:rgba(13,202,240,0.1);"><i class="fas fa-code text-info" style="font-size:0.75rem;"></i></div>
+                <div class="tip-title">Better Skills</div>
+              </div>
+              <div class="tip-body">
+                Group skills by category (Technical, Soft Skills, Tools) and include proficiency levels. Prioritize skills mentioned in target job descriptions.
+              </div>
+            </div>
+
+            <div class="tip-card">
+              <div class="tip-header">
+                <div class="tip-icon" style="background:rgba(255,193,7,0.1);"><i class="fas fa-trophy text-warning" style="font-size:0.75rem;"></i></div>
+                <div class="tip-title">Achievement Impact</div>
+              </div>
+              <div class="tip-body">
+                Every bullet point should follow the formula: <strong>Action + Method + Result</strong>. Add numbers, percentages, and timeframes.
+              </div>
+              <div class="ba-box">
+                <div class="ba-item ba-before">
+                  <div class="ba-label">Weak</div>
+                  <div class="ba-text">Improved website performance.</div>
+                </div>
+                <div class="ba-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="ba-item ba-after">
+                  <div class="ba-label">Strong</div>
+                  <div class="ba-text">Optimized React components and implemented lazy loading, reducing page load time by 42% and improving Core Web Vitals scores.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 4: ENHANCE ===================== -->
+      <div class="tab-pane fade" id="enhance" role="tabpanel">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="enhance-input-card">
+              <div class="tab-section-title mb-3"><i class="fas fa-sliders-h me-1"></i>Enhancement Options</div>
+
+              <div class="form-group">
+                <label>
+                  <span class="label-icon" style="background:rgba(13,110,253,0.1);"><i class="fas fa-layer-group" style="font-size:0.55rem;color:#0d6efd;"></i></span>
+                  Section to Enhance
+                </label>
+                <select class="form-select" id="enhanceSection">
+                  <option value="summary">Professional Summary</option>
+                  <option value="experience">Experience Descriptions</option>
+                  <option value="skills">Skills Section</option>
+                  <option value="bullet">Bullet Points</option>
+                  <option value="custom">Custom Text</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <span class="label-icon" style="background:rgba(255,193,7,0.1);"><i class="fas fa-wand-magic-sparkles" style="font-size:0.55rem;color:#f59e0b;"></i></span>
+                  Enhancement Action
+                </label>
+                <select class="form-select" id="enhanceAction">
+                  <option value="improve">Improve & Enhance</option>
+                  <option value="grammar">Fix Grammar</option>
+                  <option value="tone">Improve Tone</option>
+                  <option value="clarity">Improve Clarity</option>
+                  <option value="impact">Increase Impact</option>
+                  <option value="bullet">Rewrite as Bullet Points</option>
+                  <option value="summary">Generate Summary from CV</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <span class="label-icon" style="background:rgba(26,143,92,0.1);"><i class="fas fa-pen" style="font-size:0.55rem;color:var(--primary);"></i></span>
+                  Your Text
+                </label>
+                <textarea class="form-control" id="enhanceText" rows="6" placeholder="Paste the text you want to enhance or rewrite...&#10;&#10;Tip: Select a section above to auto-load text from your CV."></textarea>
+                <div class="char-counter"><span id="charCount">0</span> characters</div>
+              </div>
+
+              <div class="d-flex gap-2 pt-1">
+                <button class="enhance-btn btn-success" onclick="runEnhance({{ cv_upload.pk }})" id="enhanceRunBtn">
+                  <i class="fas fa-magic"></i>Enhance Text
+                </button>
+                <button class="enhance-btn btn-outline-secondary" onclick="clearEnhance()" id="enhanceClearBtn">
+                  <i class="fas fa-trash-can"></i>Clear
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="enhance-result-area">
+              <div class="tab-section-title mb-2"><i class="fas fa-sparkles me-1"></i>Enhanced Result</div>
+              <div class="enhance-preview" id="enhanceResult">
+                <div class="enhance-preview-empty">
+                  <div class="empty-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                  <p class="fw-semibold mb-1" style="font-size:0.85rem;color:var(--text-primary);">Ready to Enhance</p>
+                  <p class="text-muted mb-0" style="font-size:0.75rem;">Follow these steps to get started:</p>
+                  <div class="empty-steps">
+                    <div class="empty-step"><span class="step-num">1</span>Select the section to enhance</div>
+                    <div class="empty-step"><span class="step-num">2</span>Choose an enhancement action</div>
+                    <div class="empty-step"><span class="step-num">3</span>Click "Enhance Text" to see results</div>
+                  </div>
+                </div>
+              </div>
+              <div class="enhance-result-toolbar" id="enhanceActions" style="display:none;">
+                <span class="toolbar-label"><i class="fas fa-check-circle text-success me-1"></i>Enhancement complete</span>
+                <div class="toolbar-actions">
+                  <button class="toolbar-btn" onclick="copyEnhanced()" title="Copy to clipboard">
+                    <i class="fas fa-copy"></i>Copy
+                  </button>
+                  <button class="toolbar-btn" onclick="clearEnhance()" title="Clear result">
+                    <i class="fas fa-times"></i>Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 5: USER INPUT ===================== -->
+      <div class="tab-pane fade" id="input" role="tabpanel">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-user me-1"></i>Personal Information</div>
+              <div class="input-field-row">
+                <label>Full Name</label>
+                <input type="text" class="form-control" value="{{ request.user.get_full_name }}" readonly>
+              </div>
+              <div class="input-field-row">
+                <label>Email</label>
+                <input type="text" class="form-control" value="{{ request.user.email }}" readonly>
+              </div>
+              <div class="input-field-row">
+                <label>Phone</label>
+                <input type="text" class="form-control" id="inputPhone" value="{{ profile.phone|default:'' }}" onchange="saveProfileField('personal','phone',this.value)">
+              </div>
+              <div class="input-field-row">
+                <label>Location</label>
+                <input type="text" class="form-control" id="inputLocation" value="{{ profile.location|default:'' }}" onchange="saveProfileField('personal','bio',document.getElementById('inputBio').value)">
+              </div>
+              <div class="input-field-row">
+                <label>Bio / Summary</label>
+                <textarea class="form-control" id="inputBio" rows="3" onchange="saveProfileField('personal','bio',this.value)">{{ profile.bio|default:'' }}</textarea>
+              </div>
+            </div>
+
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-bullseye me-1"></i>Career Objective</div>
+              <div class="input-field-row">
+                <label>Target Role</label>
+                <input type="text" class="form-control" id="inputTargetRole" value="{{ profile.target_role|default:'' }}" onchange="saveProfileField('objective','target_role',this.value)">
+              </div>
+              <div class="input-field-row">
+                <label>Target Industry</label>
+                <input type="text" class="form-control" id="inputTargetIndustry" value="{{ profile.target_industry|default:'' }}" onchange="saveProfileField('objective','target_industry',this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-cogs me-1"></i>Skills</div>
+              <div class="d-flex gap-2 mb-3">
+                <input type="text" class="form-control" id="newSkillName" placeholder="Add a skill...">
+                <select class="form-select" id="newSkillCat" style="width:auto;">
+                  <option value="technical">Technical</option>
+                  <option value="soft">Soft Skills</option>
+                  <option value="tool">Tools</option>
+                  <option value="language">Language</option>
+                  <option value="certification">Certification</option>
+                </select>
+                <button class="btn btn-success btn-sm" onclick="addSkill({{ cv_upload.pk }})"><i class="fas fa-plus"></i></button>
+              </div>
+              <div class="skills-area" id="skillsList">
+                {% for skill in skills %}
+                <div class="skill-inline" id="skill-{{ skill.pk }}">
+                  <span class="skill-tag">{{ skill.skill_name }}</span>
+                  <i class="fas fa-times skill-remove" onclick="removeSkill({{ skill.pk }})" title="Remove {{ skill.skill_name }}"></i>
+                </div>
+                {% empty %}
+                <p class="text-muted small mb-0">No skills added yet.</p>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-briefcase me-1"></i>Experience</div>
+              <div class="input-field-row">
+                <label>Current Role</label>
+                <input type="text" class="form-control" id="inputCurrentRole" value="{{ profile.current_role|default:'' }}" onchange="saveProfileField('experience','title',this.value)">
+              </div>
+              <div class="input-field-row">
+                <label>Years of Experience</label>
+                <select class="form-select" id="inputYearsExp" onchange="saveProfileField('experience','years',this.value)">
+                  <option value="0" {% if profile.years_experience == '0' %}selected{% endif %}>No Experience</option>
+                  <option value="1" {% if profile.years_experience == '1' %}selected{% endif %}>0-1 years</option>
+                  <option value="2" {% if profile.years_experience == '2' %}selected{% endif %}>1-3 years</option>
+                  <option value="3" {% if profile.years_experience == '3' %}selected{% endif %}>3-5 years</option>
+                  <option value="5" {% if profile.years_experience == '5' %}selected{% endif %}>5-10 years</option>
+                  <option value="10" {% if profile.years_experience == '10' %}selected{% endif %}>10+ years</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-graduation-cap me-1"></i>Education</div>
+              <div class="input-field-row">
+                <label>Highest Degree</label>
+                <select class="form-select" id="inputEduLevel" onchange="saveEduField()">
+                  <option value="" {% if not profile.education_level %}selected{% endif %}>Select...</option>
+                  <option value="high_school" {% if profile.education_level == 'high_school' %}selected{% endif %}>High School</option>
+                  <option value="associate" {% if profile.education_level == 'associate' %}selected{% endif %}>Associate Degree</option>
+                  <option value="bachelor" {% if profile.education_level == 'bachelor' %}selected{% endif %}>Bachelor's Degree</option>
+                  <option value="master" {% if profile.education_level == 'master' %}selected{% endif %}>Master's Degree</option>
+                  <option value="phd" {% if profile.education_level == 'phd' %}selected{% endif %}>PhD</option>
+                  <option value="other" {% if profile.education_level == 'other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+              <div class="input-field-row">
+                <label>Field of Study</label>
+                <input type="text" class="form-control" id="inputFieldStudy" value="{{ profile.field_of_study|default:'' }}" onchange="saveEduField()">
+              </div>
+              <div class="input-field-row">
+                <label>Institution</label>
+                <input type="text" class="form-control" id="inputInstitution" value="{{ profile.institution|default:'' }}" onchange="saveEduField()">
+              </div>
+              <div class="input-field-row">
+                <label>Graduation Year</label>
+                <input type="number" class="form-control" id="inputGradYear" value="{{ profile.graduation_year|default:'' }}" onchange="saveEduField()">
+              </div>
+            </div>
+
+            <div class="input-section-card">
+              <div class="tab-section-title"><i class="fas fa-certificate me-1"></i>Certifications</div>
+              <div class="d-flex gap-2 mb-3">
+                <input type="text" class="form-control" id="newCertName" placeholder="e.g., AWS Certified Solutions Architect">
+                <button class="btn btn-success btn-sm" onclick="addCert({{ cv_upload.pk }})"><i class="fas fa-plus"></i></button>
+              </div>
+              <div id="certList">
+                {% for skill in skills %}
+                  {% if skill.category == 'certification' %}
+                  <div class="cert-item">
+                    <i class="fas fa-certificate text-warning"></i>
+                    <span>{{ skill.skill_name }}</span>
+                  </div>
+                  {% endif %}
+                {% empty %}
+                <p class="text-muted small mb-0">No certifications added yet.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== TAB 6: THEME ===================== -->
+      <div class="tab-pane fade" id="theme" role="tabpanel">
+        <div class="row g-4 justify-content-center">
+          <div class="col-lg-8">
+            <div class="tab-section-title text-center"><i class="fas fa-palette me-1"></i>Choose Your Theme</div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="theme-option theme-light" onclick="setTheme('light')" id="themeLight">
+                  <div class="theme-option-icon"><i class="fas fa-sun text-warning"></i></div>
+                  <div class="theme-option-label">Light Mode</div>
+                  <div class="theme-option-desc">Clean, bright, easy on the eyes</div>
+                  <div class="mt-2">
+                    <span class="theme-preview-dot" style="background:#fff;border:2px solid #ddd;"></span>
+                    <span class="theme-preview-dot" style="background:#f0f4f8;"></span>
+                    <span class="theme-preview-dot" style="background:#1a8f5c;"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="theme-option theme-dark" onclick="setTheme('dark')" id="themeDark">
+                  <div class="theme-option-icon"><i class="fas fa-moon text-primary"></i></div>
+                  <div class="theme-option-label">Dark Mode</div>
+                  <div class="theme-option-desc">Easy on the eyes, great for night</div>
+                  <div class="mt-2">
+                    <span class="theme-preview-dot" style="background:#1a1d27;"></span>
+                    <span class="theme-preview-dot" style="background:#0f1117;"></span>
+                    <span class="theme-preview-dot" style="background:#4ade80;"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="theme-option theme-modern" onclick="setTheme('modern')" id="themeModern">
+                  <div class="theme-option-icon"><i class="fas fa-palette" style="color:#8b5cf6;"></i></div>
+                  <div class="theme-option-label">Modern Theme</div>
+                  <div class="theme-option-desc">Contemporary with accent colors</div>
+                  <div class="mt-2">
+                    <span class="theme-preview-dot" style="background:#f5f3ff;"></span>
+                    <span class="theme-preview-dot" style="background:#ede9fe;"></span>
+                    <span class="theme-preview-dot" style="background:#8b5cf6;"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-center mt-4">
+              <button class="btn btn-success px-4" onclick="saveThemePref()">
+                <i class="fas fa-save me-1"></i>Save Theme Preference
+              </button>
+              <p class="text-muted small mt-2" id="themeSaveMsg"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if bullet_feedback %}
+      <!-- ===================== TAB 7: BULLET FEEDBACK ===================== -->
+      <div class="tab-pane fade" id="bullets" role="tabpanel">
+        <div class="tab-section-title mb-3"><i class="fas fa-list-ul me-1 text-primary"></i>Line-by-Line Bullet Point Feedback</div>
+        <p class="text-muted small mb-3">
+          AI has graded each of your CV bullet points on action verb strength, quantifiable impact, and overall quality.
+          <span class="badge bg-success me-1">🟢 Strong</span>
+          <span class="badge bg-warning text-dark me-1">🟡 Good</span>
+          <span class="badge bg-danger me-1">🔴 Weak</span>
+        </p>
+
+        <!-- Summary bar -->
+        <div class="row g-2 mb-4">
+          {% with strong_count=0 good_count=0 weak_count=0 %}
+          <div class="col-4 text-center">
+            <div class="fw-bold text-success fs-4">{{ bullet_feedback|length }}</div>
+            <div class="text-muted small">Total Bullets</div>
+          </div>
+          <div class="col-4 text-center">
+            <div class="fw-bold text-primary fs-4">
+              {% for b in bullet_feedback %}{% if b.has_action_verb %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
+              {% comment %}Simple count approach{% endcomment %}
+            </div>
+            <div class="text-muted small">Have Action Verbs</div>
+          </div>
+          <div class="col-4 text-center">
+            <div class="fw-bold text-warning fs-4">
+              {% for b in bullet_feedback %}{% if b.has_metric %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
+            </div>
+            <div class="text-muted small">Have Metrics</div>
+          </div>
+          {% endwith %}
+        </div>
+
+        <!-- Bullet cards -->
+        {% for bullet in bullet_feedback %}
+        <div class="card mb-3 border-{% if bullet.level == 'strong' %}success{% elif bullet.level == 'good' %}warning{% else %}danger{% endif %}" style="border-left-width: 4px;">
+          <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-3">
+              <!-- Score circle -->
+              <div class="flex-shrink-0 text-center" style="min-width:52px;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto fw-bold text-white"
+                     style="width:48px;height:48px;font-size:.9rem;background:{% if bullet.level == 'strong' %}#198754{% elif bullet.level == 'good' %}#ffc107{% else %}#dc3545{% endif %};">
+                  {{ bullet.score }}
+                </div>
+                <div class="text-muted" style="font-size:.65rem;margin-top:2px;">
+                  {% if bullet.level == 'strong' %}Strong{% elif bullet.level == 'good' %}Good{% else %}Weak{% endif %}
+                </div>
+              </div>
+              <!-- Content -->
+              <div class="flex-grow-1">
+                <div class="fw-medium mb-1" style="font-size:.88rem;">{{ bullet.text }}</div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  <span class="badge bg-{% if bullet.has_action_verb %}success{% else %}danger{% endif %}-subtle border border-{% if bullet.has_action_verb %}success{% else %}danger{% endif %}-subtle text-{% if bullet.has_action_verb %}success{% else %}danger{% endif %}" style="font-size:.72rem;">
+                    {% if bullet.has_action_verb %}✓{% else %}✗{% endif %} Action Verb
+                  </span>
+                  <span class="badge bg-{% if bullet.has_metric %}success{% else %}warning{% endif %}-subtle border border-{% if bullet.has_metric %}success{% else %}warning{% endif %}-subtle text-{% if bullet.has_metric %}success{% else %}warning{% endif %}" style="font-size:.72rem;">
+                    {% if bullet.has_metric %}✓{% else %}!{% endif %} Metrics
+                  </span>
+                </div>
+                <div class="text-muted small mb-2"><i class="fas fa-comment me-1"></i>{{ bullet.feedback }}</div>
+                {% if bullet.suggested_rewrite and bullet.suggested_rewrite != bullet.text %}
+                <div class="bg-success bg-opacity-10 rounded p-2" style="font-size:.82rem;">
+                  <span class="text-success fw-semibold me-1"><i class="fas fa-magic me-1"></i>Suggestion:</span>{{ bullet.suggested_rewrite }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ analysis.extracted_sections|json_script:"extractedSectionsData" }}
+<script>
+// Score charts
+function makeScoreChart(id, score) {
+  const colors = { excellent: '#1a8f5c', good: '#0d6efd', fair: '#ffc107', poor: '#dc3545' };
+  const label = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'poor';
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: { datasets: [{ data: [score, 100 - score], backgroundColor: [colors[label], 'rgba(0,0,0,0.07)'], borderWidth: 0 }] },
+    options: { cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000, easing: 'easeOutQuart' } }
+  });
+}
+makeScoreChart('overallChart', {{ analysis.overall_score|floatformat:0 }});
+makeScoreChart('atsChart', {{ analysis.ats_score|floatformat:0 }});
+makeScoreChart('grammarChart', {{ analysis.grammar_score|floatformat:0 }});
+makeScoreChart('keywordChart', {{ analysis.keyword_score|floatformat:0 }});
+makeScoreChart('formatChart', {{ analysis.format_score|floatformat:0 }});
+
+// ATS circular progress
+(function(){
+  const ats = {{ analysis.ats_score|floatformat:0 }};
+  const circumference = 2 * Math.PI * 68;
+  const offset = circumference - (ats / 100) * circumference;
+  const circle = document.querySelector('#ats .cp-fill');
+  if (circle) {
+    circle.style.strokeDasharray = circumference;
+    circle.style.strokeDashoffset = circumference;
+    setTimeout(() => { circle.style.strokeDashoffset = offset; }, 300);
+  }
+})();
+
+// ==================== CV PREVIEW ZOOM CONTROLS ====================
+let cvZoom = 1.0;
+const CV_BASE_WIDTH = 800;
+const CV_BASE_HEIGHT = 1131;
+const CV_ZOOM_STEP = 0.1;
+const CV_ZOOM_MIN = 0.3;
+const CV_ZOOM_MAX = 3.0;
+
+function onCvLoaded() {
+  const paper = document.getElementById('cvA4Paper');
+  const loading = document.getElementById('cvLoading');
+  if (paper) paper.classList.replace('cv-loading', 'cv-loaded');
+  if (loading) loading.style.display = 'none';
+  cvZoomFitPage();
+}
+
+function cvApplyZoom() {
+  const paper = document.getElementById('cvA4Paper');
+  if (!paper) return;
+  const pct = Math.round(cvZoom * 100);
+  document.getElementById('cvZoomLabel').textContent = pct + '%';
+  paper.style.transform = `scale(${cvZoom})`;
+}
+function cvZoomIn() {
+  if (cvZoom < CV_ZOOM_MAX) { cvZoom = Math.min(cvZoom + CV_ZOOM_STEP, CV_ZOOM_MAX); cvApplyZoom(); }
+}
+function cvZoomOut() {
+  if (cvZoom > CV_ZOOM_MIN) { cvZoom = Math.max(cvZoom - CV_ZOOM_STEP, CV_ZOOM_MIN); cvApplyZoom(); }
+}
+function cvZoomFitWidth() {
+  const area = document.getElementById('cvPreviewArea');
+  if (!area) return;
+  const avail = area.clientWidth - 40;
+  cvZoom = Math.max(0.3, Math.min(avail / CV_BASE_WIDTH, 2.0));
+  cvZoom = Math.round(cvZoom * 10) / 10;
+  cvApplyZoom();
+  document.querySelectorAll('.cv-zoom-btn').forEach(b => b.classList.remove('active'));
+}
+function cvZoomFitPage() {
+  const area = document.getElementById('cvPreviewArea');
+  if (!area) return;
+  const availW = area.clientWidth - 40;
+  const availH = area.clientHeight - 40;
+  const scaleW = availW / CV_BASE_WIDTH;
+  const scaleH = availH / CV_BASE_HEIGHT;
+  cvZoom = Math.max(0.3, Math.min(scaleW, scaleH, 1.5));
+  cvZoom = Math.round(cvZoom * 10) / 10;
+  cvApplyZoom();
+  document.querySelectorAll('.cv-zoom-btn').forEach(b => b.classList.remove('active'));
+}
+
+// Recalculate zoom on resize
+let cvResizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(cvResizeTimer);
+  cvResizeTimer = setTimeout(cvZoomFitPage, 200);
+});
+
+// Keyboard shortcuts for zoom
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('cvPreviewPanel')) return;
+  if (e.ctrlKey && e.key === '=') { e.preventDefault(); cvZoomIn(); }
+  if (e.ctrlKey && e.key === '-') { e.preventDefault(); cvZoomOut(); }
+  if (e.ctrlKey && e.key === '0') { e.preventDefault(); cvZoomFitPage(); }
+});
+
+// ==================== TAB 2: JOB MATCH ====================
+function runJobMatch(pk) {
+  const jd = document.getElementById('jdText').value.trim();
+  if (!jd) { alert('Please paste a job description.'); return; }
+  document.getElementById('matchPlaceholder').style.display = 'none';
+  document.getElementById('matchResults').style.display = 'block';
+  document.getElementById('matchLoading').style.display = 'block';
+  document.getElementById('matchScoreNum').textContent = '...';
+  fetch(`/cv/${pk}/match-jd/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ job_description: jd })
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('matchLoading').style.display = 'none';
+    if (d.error) { document.getElementById('matchScoreNum').textContent = 'Error'; return; }
+    const score = parseInt(d.match_score) || 0;
+    document.getElementById('matchScoreNum').textContent = score + '%';
+    // Animate the score circle
+    const circle = document.getElementById('matchScoreCircle');
+    const circumference = 2 * Math.PI * 68;
+    if (circle) {
+      circle.style.strokeDasharray = circumference;
+      circle.style.strokeDashoffset = circumference;
+      setTimeout(() => {
+        const offset = circumference - (score / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+        // Color based on score
+        if (score >= 70) circle.style.stroke = '#1a8f5c';
+        else if (score >= 50) circle.style.stroke = '#f59e0b';
+        else circle.style.stroke = '#dc3545';
+      }, 300);
+    }
+    const badge = document.getElementById('matchReadinessBadge');
+    const labels = { high: 'Job Ready', medium: 'Moderate Match', low: 'Needs Improvement' };
+    const readiness = d.readiness_indicator || 'low';
+    badge.innerHTML = `<span class="match-readiness ${readiness}">${labels[readiness] || 'Analyzed'}</span>`;
+    document.getElementById('matchReadinessLevel').textContent = labels[readiness] || '—';
+
+    const matchSkills = d.matching_skills || [];
+    const missingSkills = d.missing_skills || [];
+    document.getElementById('matchSkillsCount').textContent = matchSkills.length;
+    document.getElementById('missingSkillsCount').textContent = missingSkills.length;
+
+    if (matchSkills.length) {
+      document.getElementById('matchSkillsBox').style.display = 'block';
+      document.getElementById('matchSkillsList').innerHTML = matchSkills.map(s => `<span class="keyword-tag match-skill">${s}</span>`).join('');
+    }
+    if (missingSkills.length) {
+      document.getElementById('missingSkillsBox').style.display = 'block';
+      document.getElementById('missingSkillsList').innerHTML = missingSkills.map(s => `<span class="keyword-tag missing-skill">${s}</span>`).join('');
+    }
+    if (d.suggestions && d.suggestions.length) {
+      document.getElementById('matchSuggestionsBox').style.display = 'block';
+      document.getElementById('matchSuggestionsList').innerHTML = d.suggestions.map(s => `<div class="d-flex align-items-start gap-2 mb-1" style="font-size:0.78rem;"><i class="fas fa-chevron-right text-success mt-1" style="font-size:0.6rem;"></i>${s}</div>`).join('');
+    }
+    if (d.ai_summary) {
+      document.getElementById('matchAiBox').style.display = 'block';
+      document.getElementById('matchAiSummary').textContent = d.ai_summary;
+    }
+  })
+  .catch(e => {
+    document.getElementById('matchLoading').style.display = 'none';
+    document.getElementById('matchScoreNum').textContent = 'Error';
+  });
+}
+
+// ==================== TAB 4: ENHANCE ====================
+function runEnhance(pk) {
+  const text = document.getElementById('enhanceText').value.trim();
+  const action = document.getElementById('enhanceAction').value;
+  if (!text) { alert('Please enter text to enhance.'); return; }
+  const resultDiv = document.getElementById('enhanceResult');
+  const toolbar = document.getElementById('enhanceActions');
+  resultDiv.innerHTML = `
+    <div class="enhance-loading">
+      <div class="loading-pulse"><span></span><span></span><span></span></div>
+      <p>Enhancing your text...</p>
+    </div>
+  `;
+  toolbar.style.display = 'none';
+  document.getElementById('enhanceRunBtn').disabled = true;
+  document.getElementById('enhanceRunBtn').innerHTML = '<span class="enhance-spinner"></span>Enhancing...';
+  fetch(`/cv/${pk}/enhance/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ text, action, section: document.getElementById('enhanceSection').value })
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('enhanceRunBtn').disabled = false;
+    document.getElementById('enhanceRunBtn').innerHTML = '<i class="fas fa-magic"></i>Enhance Text';
+    if (d.enhanced) {
+      const formatted = d.enhanced.replace(/\n/g, '<br>');
+      resultDiv.innerHTML = `<div class="enhance-preview-content fade-slide-up">${formatted}</div>`;
+      toolbar.style.display = 'flex';
+      
+      // Auto-update the User Input tab fields based on section
+      const section = document.getElementById('enhanceSection').value;
+      if (section === 'summary' && document.getElementById('inputBio')) {
+         document.getElementById('inputBio').value = d.enhanced;
+      }
+      
+      // Reload the CV preview iframe on the left side to show the updated DOCX file
+      const iframe = document.getElementById('cvPreviewFrame');
+      if (iframe) {
+          // Force reload bypassing cache by appending a timestamp query param
+          const currentUrl = new URL(iframe.src, window.location.href);
+          currentUrl.searchParams.set('t', new Date().getTime());
+          iframe.src = currentUrl.href;
+      }
+      
+      // Notify the user that background updates happened
+      showEnhanceToast('Enhanced! Original DOCX and profile fields auto-updated.', 'success');
+    } else {
+      resultDiv.innerHTML = '<div class="enhance-preview-empty"><div class="empty-icon" style="background:rgba(220,53,69,0.1);"><i class="fas fa-exclamation-triangle" style="color:#dc3545;font-size:1.2rem;"></i></div><p class="text-muted mb-0" style="font-size:0.82rem;">Could not enhance. Please try again.</p></div>';
+    }
+  })
+  .catch(() => {
+    document.getElementById('enhanceRunBtn').disabled = false;
+    document.getElementById('enhanceRunBtn').innerHTML = '<i class="fas fa-magic"></i>Enhance Text';
+    resultDiv.innerHTML = '<div class="enhance-preview-empty"><div class="empty-icon" style="background:rgba(220,53,69,0.1);"><i class="fas fa-exclamation-triangle" style="color:#dc3545;font-size:1.2rem;"></i></div><p class="text-danger mb-0" style="font-size:0.82rem;">Error enhancing text. Please try again.</p></div>';
+  });
+}
+
+function copyEnhanced() {
+  const text = document.getElementById('enhanceResult').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showEnhanceToast('Copied to clipboard!', 'success');
+  }).catch(() => {
+    showEnhanceToast('Failed to copy', 'danger');
+  });
+}
+
+function clearEnhance() {
+  document.getElementById('enhanceText').value = '';
+  document.getElementById('charCount').textContent = '0';
+  document.getElementById('enhanceResult').innerHTML = `
+    <div class="enhance-preview-empty">
+      <div class="empty-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+      <p class="fw-semibold mb-1" style="font-size:0.85rem;color:var(--text-primary);">Ready to Enhance</p>
+      <p class="text-muted mb-0" style="font-size:0.75rem;">Follow these steps to get started:</p>
+      <div class="empty-steps">
+        <div class="empty-step"><span class="step-num">1</span>Select the section to enhance</div>
+        <div class="empty-step"><span class="step-num">2</span>Choose an enhancement action</div>
+        <div class="empty-step"><span class="step-num">3</span>Click "Enhance Text" to see results</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('enhanceActions').style.display = 'none';
+}
+
+function showEnhanceToast(msg, type) {
+  let toast = document.getElementById('enhanceToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'enhanceToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:500;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.15);transition:all 0.3s ease;transform:translateY(20px);opacity:0;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.background = type === 'success' ? '#1a8f5c' : '#dc3545';
+  toast.style.color = '#fff';
+  toast.style.transform = 'translateY(0)';
+  toast.style.opacity = '1';
+  clearTimeout(toast._hide);
+  toast._hide = setTimeout(() => {
+    toast.style.transform = 'translateY(20px)';
+    toast.style.opacity = '0';
+  }, 2500);
+}
+
+// Character counter
+document.addEventListener('DOMContentLoaded', function() {
+  const ta = document.getElementById('enhanceText');
+  if (ta) {
+    ta.addEventListener('input', function() {
+      document.getElementById('charCount').textContent = this.value.length;
+    });
+  }
+});
+
+function switchEnhanceTab(section) {
+  document.querySelector('[data-bs-target="#enhance"]').click();
+  
+  const sectionsData = JSON.parse(document.getElementById('extractedSectionsData').textContent);
+  
+  if (section === 'summary') {
+    document.getElementById('enhanceSection').value = 'summary';
+    document.getElementById('enhanceAction').value = 'summary';
+    document.getElementById('enhanceText').value = 'Generate a professional summary from my CV data';
+  } else if (section === 'projects' && !sectionsData[section]) {
+    document.getElementById('enhanceSection').value = 'custom';
+    document.getElementById('enhanceAction').value = 'improve';
+    document.getElementById('enhanceText').value = 'Generate a professional Projects section based on my CV data';
+  } else if (section === 'languages' && !sectionsData[section]) {
+    document.getElementById('enhanceSection').value = 'custom';
+    document.getElementById('enhanceAction').value = 'improve';
+    document.getElementById('enhanceText').value = 'Generate a Languages section (include English as fluent)';
+  } else if (!sectionsData[section]) {
+    document.getElementById('enhanceSection').value = 'custom';
+    document.getElementById('enhanceAction').value = 'improve';
+    document.getElementById('enhanceText').value = 'Generate a professional ' + section + ' section for my CV';
+  } else {
+    const validSections = ['summary', 'experience', 'skills', 'bullet', 'custom'];
+    document.getElementById('enhanceSection').value = validSections.includes(section) ? section : 'custom';
+    document.getElementById('enhanceAction').value = 'improve';
+    document.getElementById('enhanceText').value = sectionsData[section];
+  }
+  
+  document.getElementById('charCount').textContent = document.getElementById('enhanceText').value.length;
+  
+  // Wait for tab transition, then scroll down and run enhance
+  setTimeout(() => {
+    document.getElementById('enhanceText').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (document.getElementById('enhanceText').value.trim() !== 'Please provide text to enhance here.') {
+        runEnhance({{ cv_upload.pk }});
+    }
+  }, 300);
+}
+
+// ==================== TAB 5: USER INPUT ====================
+function saveProfileField(section, field, value) {
+  fetch(`/cv/{{ cv_upload.pk }}/save-profile/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ section, field, value })
+  });
+}
+
+function saveEduField() {
+  fetch(`/cv/{{ cv_upload.pk }}/save-profile/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({
+      section: 'education',
+      level: document.getElementById('inputEduLevel').value,
+      field: document.getElementById('inputFieldStudy').value,
+      institution: document.getElementById('inputInstitution').value,
+      year: document.getElementById('inputGradYear').value,
+    })
+  });
+}
+
+function addSkill(pk) {
+  const name = document.getElementById('newSkillName').value.trim();
+  if (!name) return;
+  const cat = document.getElementById('newSkillCat').value;
+  fetch(`/cv/${pk}/save-profile/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ section: 'skills', skill_name: name, proficiency: 3, category: cat })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      document.getElementById('newSkillName').value = '';
+      location.reload();
+    }
+  });
+}
+
+function removeSkill(pk) {
+  if (!confirm('Remove this skill?')) return;
+  fetch(`/assessment/skills/${pk}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+  .then(() => location.reload());
+}
+
+function addCert(pk) {
+  const name = document.getElementById('newCertName').value.trim();
+  if (!name) return;
+  fetch(`/cv/${pk}/save-profile/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ section: 'certification', name })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      document.getElementById('newCertName').value = '';
+      location.reload();
+    }
+  });
+}
+
+// ==================== TAB 6: THEME ====================
+function setTheme(theme) {
+  document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+  if (theme === 'light') {
+    document.getElementById('themeLight').classList.add('active');
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+  } else if (theme === 'dark') {
+    document.getElementById('themeDark').classList.add('active');
+    document.documentElement.setAttribute('data-bs-theme', 'dark');
+  } else if (theme === 'modern') {
+    document.getElementById('themeModern').classList.add('active');
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+    document.documentElement.style.setProperty('--primary', '#8b5cf6');
+    document.documentElement.style.setProperty('--primary-dark', '#7c3aed');
+    document.getElementById('themeIcon').className = 'fas fa-palette';
+  }
+  window._preferredTheme = theme;
+}
+
+function saveThemePref() {
+  const theme = window._preferredTheme || 'light';
+  const msg = document.getElementById('themeSaveMsg');
+  try {
+    localStorage.setItem('careerai_theme', theme);
+    msg.textContent = '✓ Theme preference saved!';
+    msg.style.color = 'var(--primary)';
+  } catch(e) {
+    msg.textContent = 'Could not save preference.';
+    msg.style.color = '#dc3545';
+  }
+  setTimeout(() => msg.textContent = '', 3000);
+}
+
+// Restore theme on page load
+(function(){
+  try {
+    const saved = localStorage.getItem('careerai_theme');
+    if (saved) setTheme(saved);
+  } catch(e) {}
+})();
+
+
+</script>
+{% endblock %}

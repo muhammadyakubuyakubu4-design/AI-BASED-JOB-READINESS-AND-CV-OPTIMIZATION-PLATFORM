@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Assessment — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row g-4">
+
+    <!-- Run Assessment -->
+    <div class="col-lg-8">
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-success"></i>Job Readiness Assessment</h6>
+          <form method="POST" action="{% url 'assessment:run' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-play me-1"></i>Run New Assessment
+            </button>
+          </form>
+        </div>
+        <div class="card-body">
+          {% if latest_assessment %}
+          <div class="assessment-overview">
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-success-subtle">
+                  <div class="asc-label">Overall Readiness</div>
+                  <div class="asc-value text-success">{{ latest_assessment.readiness_score|floatformat:0 }}/100</div>
+                  <div class="asc-badge">{{ latest_assessment.readiness_label.0 }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-primary-subtle">
+                  <div class="asc-label">Technical Skills</div>
+                  <div class="asc-value text-primary">{{ latest_assessment.technical_score|floatformat:0 }}/100</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-warning-subtle">
+                  <div class="asc-label">Soft Skills</div>
+                  <div class="asc-value text-warning">{{ latest_assessment.soft_skills_score|floatformat:0 }}/100</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-info-subtle">
+                  <div class="asc-label">Experience</div>
+                  <div class="asc-value text-info">{{ latest_assessment.experience_score|floatformat:0 }}/100</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-danger-subtle">
+                  <div class="asc-label">Education</div>
+                  <div class="asc-value text-danger">{{ latest_assessment.education_score|floatformat:0 }}/100</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="assessment-score-card bg-secondary-subtle">
+                  <div class="asc-label">Career Level</div>
+                  <div class="asc-value text-secondary">{{ latest_assessment.career_level|title }}</div>
+                </div>
+              </div>
+            </div>
+
+            {% if latest_assessment.ai_summary %}
+            <div class="ai-summary-box mb-4">
+              <div class="ai-summary-header"><i class="fas fa-robot me-2 text-success"></i>AI Assessment Summary</div>
+              <p class="mb-0">{{ latest_assessment.ai_summary }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Radar Chart -->
+            <canvas id="radarChart" height="300"></canvas>
+
+            <div class="text-center mt-3">
+              <a href="{% url 'assessment:result' latest_assessment.pk %}" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-eye me-1"></i>View Full Report
+              </a>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty-state text-center py-5">
+            <i class="fas fa-chart-radar fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Assessment Yet</h5>
+            <p class="text-muted">Add your skills and run an assessment to see your job readiness score.</p>
+            <a href="{% url 'assessment:skills' %}" class="btn btn-outline-success me-2">Add Skills First</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Panel -->
+    <div class="col-lg-4">
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-code me-2 text-primary"></i>My Skills</h6>
+          <a href="{% url 'assessment:skills' %}" class="btn btn-xs btn-outline-primary">Manage</a>
+        </div>
+        <div class="card-body">
+          {% if skills %}
+          <div class="skill-list-compact">
+            {% for skill in skills|slice:":10" %}
+            <div class="skill-compact-item">
+              <span class="skill-compact-name">{{ skill.skill_name }}</span>
+              <div class="skill-compact-stars">
+                {% for i in "12345" %}
+                <i class="fas fa-star {% if forloop.counter <= skill.proficiency %}text-warning{% else %}text-muted{% endif %} small"></i>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if skills.count > 10 %}
+          <div class="text-muted small text-center mt-2">+{{ skills.count|add:"-10" }} more skills</div>
+          {% endif %}
+          {% else %}
+          <p class="text-muted small">No skills added yet.</p>
+          {% endif %}
+
+          <div class="mt-3">
+            <!-- Quick Add Skill -->
+            <form method="POST" action="{% url 'assessment:skill_add' %}">
+              {% csrf_token %}
+              <div class="input-group input-group-sm">
+                {{ skill_form.skill_name }}
+                <button type="submit" class="btn btn-success">Add</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {% if latest_assessment and latest_assessment.skill_gaps %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Skill Gaps</h6>
+        </div>
+        <div class="card-body p-0">
+          {% for gap in latest_assessment.skill_gaps %}
+          <div class="skill-gap-item">
+            <div class="sgap-skill">{{ gap.skill }}</div>
+            <span class="badge bg-{% if gap.importance == 'high' %}danger{% else %}warning{% endif %}-subtle text-{% if gap.importance == 'high' %}danger{% else %}warning{% endif %} small">{{ gap.importance|title }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if latest_assessment %}
+<script>
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Technical', 'Soft Skills', 'Experience', 'Education', 'Overall'],
+    datasets: [{
+      label: 'Your Scores',
+      data: [
+        {{ latest_assessment.technical_score|floatformat:0 }},
+        {{ latest_assessment.soft_skills_score|floatformat:0 }},
+        {{ latest_assessment.experience_score|floatformat:0 }},
+        {{ latest_assessment.education_score|floatformat:0 }},
+        {{ latest_assessment.readiness_score|floatformat:0 }}
+      ],
+      backgroundColor: 'rgba(26,143,92,0.2)',
+      borderColor: '#1a8f5c',
+      pointBackgroundColor: '#1a8f5c',
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 25 } } },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

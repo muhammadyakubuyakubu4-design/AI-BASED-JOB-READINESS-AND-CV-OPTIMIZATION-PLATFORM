@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Mock Interview — CareerAI{% endblock %}
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-microphone text-success me-2"></i>Mock Interview: {{ session.job_title }}</h5>
+      <p class="text-muted mb-0 small">{{ total }} questions • Answer each question and get instant AI feedback</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'interview_prep:session' session.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Questions</a>
+      <a href="{% url 'learning:index' %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-graduation-cap me-1"></i>Learn Skills</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Question list -->
+    <div class="col-lg-5 col-xl-4">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-list me-2 text-primary"></i>Questions</h6>
+          <span class="badge bg-primary-subtle text-primary">{{ total }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% for q in questions %}
+          <div class="mock-question-nav {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas {{ q.icon }} small text-muted"></i>
+              <span class="small flex-grow-1">{{ q.text|truncatechars:45 }}</span>
+              {% if q.text in answered %}
+              <i class="fas fa-check-circle text-success" title="Answered"></i>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mt-3 text-center">
+        <button type="button" class="btn btn-success w-100" id="nextQuestionBtn"><i class="fas fa-arrow-right me-2"></i>Next Question</button>
+      </div>
+    </div>
+
+    <!-- Answer area -->
+    <div class="col-lg-7 col-xl-8">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-comments me-2 text-success"></i>Answer Practice</h6>
+          <span class="badge bg-secondary-subtle text-secondary" id="qTypeBadge">Behavioral</span>
+        </div>
+        <div class="card-body">
+          <div id="questionCount" class="small text-muted mb-2">Question 1 of {{ total }}</div>
+          <div class="fw-semibold fs-6 mb-3" id="questionText"></div>
+
+          <div class="mb-3">
+            <label class="form-label fw-medium">Your Answer</label>
+            <textarea id="answerText" class="form-control" rows="6" placeholder="Type your answer here. Try to use the STAR method: Situation, Task, Action, Result..."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" id="submitAnswerBtn"><i class="fas fa-paper-plane me-2"></i>Get Feedback</button>
+            <button type="button" class="btn btn-outline-secondary" id="showTipBtn" data-bs-toggle="collapse" data-bs-target="#starTip"><i class="fas fa-lightbulb me-2"></i>STAR Method</button>
+          </div>
+
+          <div class="collapse mt-3" id="starTip">
+            <div class="alert alert-light border small">
+              <strong>STAR Method:</strong> <strong>S</strong>ituation (context) → <strong>T</strong>ask (your responsibility) → <strong>A</strong>ction (what you did) → <strong>R</strong>esult (outcome, quantified if possible).
+            </div>
+          </div>
+
+          <!-- Feedback -->
+          <div id="feedbackArea" class="mt-4" style="display:none">
+            <div class="card border-start border-success border-4">
+              <div class="card-header bg-transparent"><h6 class="mb-0 fw-semibold"><i class="fas fa-robot text-success me-2"></i>AI Feedback</h6></div>
+              <div class="card-body" id="feedbackText">
+                <span class="spinner-border spinner-border-sm me-2"></span>Analyzing your answer...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const questions = [
+    {% for q in questions %}
+    {
+      type: "{{ q.type }}",
+      label: "{{ q.type_label }}",
+      icon: "{{ q.icon }}",
+      text: "{{ q.text|escapejs }}",
+      pk: {{ forloop.counter0 }}
+    },
+    {% endfor %}
+  ];
+  const total = questions.length;
+  let current = 0;
+
+  const qText = document.getElementById('questionText');
+  const qCount = document.getElementById('questionCount');
+  const qTypeBadge = document.getElementById('qTypeBadge');
+  const answerText = document.getElementById('answerText');
+  const feedbackArea = document.getElementById('feedbackArea');
+  const feedbackText = document.getElementById('feedbackText');
+  const submitBtn = document.getElementById('submitAnswerBtn');
+  const nextBtn = document.getElementById('nextQuestionBtn');
+
+  function showQuestion(idx) {
+    current = idx;
+    const q = questions[idx];
+    qText.textContent = q.text;
+    qCount.textContent = 'Question ' + (idx + 1) + ' of ' + total;
+    qTypeBadge.textContent = q.label + ' Question';
+    answerText.value = '';
+    feedbackArea.style.display = 'none';
+
+    document.querySelectorAll('.mock-question-nav').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    nextBtn.disabled = idx >= total - 1;
+  }
+
+  document.querySelectorAll('.mock-question-nav').forEach(el => {
+    el.addEventListener('click', () => showQuestion(parseInt(el.dataset.index)));
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (current < total - 1) showQuestion(current + 1);
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const q = questions[current];
+    const answer = answerText.value.trim();
+    if (!answer) { answerText.focus(); return; }
+
+    submitBtn.disabled = true;
+    feedbackArea.style.display = 'block';
+    feedbackText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing your answer...';
+
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    const token = csrf ? csrf.value : '{{ csrf_token }}';
+
+    try {
+      const res = await fetch("{% url 'interview_prep:mock_submit' session.pk %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+        body: JSON.stringify({ question: q.text, question_type: q.type, answer: answer })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const lines = (data.feedback || '').split('\n').filter(l => l.trim());
+        feedbackText.innerHTML = lines.map(l => `<div class="mb-1">${l}</div>`).join('');
+        // Mark nav item as answered
+        const nav = document.querySelectorAll('.mock-question-nav')[current];
+        if (nav && !nav.querySelector('.fa-check-circle')) {
+          nav.insertAdjacentHTML('beforeend', '<i class="fas fa-check-circle text-success ms-auto" title="Answered"></i>');
+        }
+      } else {
+        feedbackText.textContent = 'Something went wrong. Please try again.';
+      }
+    } catch (e) {
+      feedbackText.textContent = 'Network error. Please try again.';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  showQuestion(0);
+</script>
+{% endblock %}

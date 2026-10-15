@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Job Matching — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row g-4">
+    <!-- Form -->
+    <div class="col-lg-7">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-briefcase me-2 text-success"></i>Match CV to Job Description</h6>
+        </div>
+        <div class="card-body">
+          {% if not active_cv %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            You need to upload a CV first.
+            <a href="{% url 'cv_analyzer:upload' %}" class="alert-link">Upload CV</a>
+          </div>
+          {% else %}
+          <div class="active-cv-info mb-4">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-file-alt text-success"></i>
+              <span class="fw-medium">Active CV: {{ active_cv.original_filename }}</span>
+              <a href="{% url 'cv_analyzer:history' %}" class="btn btn-xs btn-outline-secondary ms-auto">Change</a>
+            </div>
+          </div>
+          {% endif %}
+
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-medium">Job Title <span class="text-danger">*</span></label>
+              {{ form.title }}
+              {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Company Name</label>
+                {{ form.company }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Location</label>
+                {{ form.location }}
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Job Posting URL <span class="text-muted small">(optional — for ATS detection)</span></label>
+              <input type="url" name="job_url" class="form-control" placeholder="https://boards.greenhouse.io/company/jobs/... (helps detect ATS platform)">
+              <div class="form-text"><i class="fas fa-robot me-1 text-primary"></i>Paste the job URL to automatically detect which ATS the company uses (Workday, Greenhouse, Taleo, etc.)</div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label fw-medium">Job Description <span class="text-danger">*</span></label>
+              <div class="text-muted small mb-2">Paste the full job posting description for best results</div>
+              {{ form.description }}
+              {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-success btn-lg w-100" {% if not active_cv %}disabled{% endif %}>
+              <i class="fas fa-search me-2"></i>Analyze Match
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips & Recent -->
+    <div class="col-lg-5">
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Tips for Best Results</h6>
+        </div>
+        <div class="card-body">
+          <ul class="tips-list">
+            <li>Paste the <strong>complete</strong> job description including requirements and responsibilities</li>
+            <li>Include the <strong>skills section</strong> of the job posting for keyword matching</li>
+            <li>Use your <strong>most recent and relevant</strong> CV as the active one</li>
+            <li>A match score above <strong>70%</strong> is generally considered strong</li>
+          </ul>
+        </div>
+      </div>
+
+      {% if recent_matches %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Matches</h6>
+          <a href="{% url 'job_matching:history' %}" class="btn btn-xs btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body p-0">
+          {% for match in recent_matches %}
+          <a href="{% url 'job_matching:result' match.pk %}" class="match-list-item">
+            <div class="match-info">
+              <div class="match-title">{{ match.job_description.title }}</div>
+              <div class="match-company text-muted small">{{ match.job_description.company|default:"Company" }}</div>
+            </div>
+            <div class="match-score-badge score-{% if match.match_score >= 70 %}high{% elif match.match_score >= 50 %}medium{% else %}low{% endif %}">
+              {{ match.match_score|floatformat:0 }}%
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

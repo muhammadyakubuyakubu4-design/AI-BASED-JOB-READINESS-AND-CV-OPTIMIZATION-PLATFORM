@@ -1,0 +1,68 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Skills Management — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-star"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total Skills</div></div>
+    </div>
+  </div>
+</div>
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search skills…" data-auto-submit>
+    </div>
+    <select name="category" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Categories</option>
+      {% for cat, label in categories %}
+      <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if q or category_filter %}
+    <a href="{% url 'admin_panel:skills' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-star me-2 text-warning"></i>Skills Overview <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>Skill Name</th><th>Category</th><th>Count</th><th>Avg Proficiency</th></tr>
+      </thead>
+      <tbody>
+        {% for skill in skills %}
+        <tr>
+          <td style="font-size:.82rem;font-weight:600">{{ skill.skill_name }}</td>
+          <td><span class="ap-badge ap-badge-secondary">{{ skill.category }}</span></td>
+          <td><span class="ap-badge ap-badge-primary">{{ skill.count }}</span></td>
+          <td>
+            <span class="ap-score-pill {% if skill.avg_prof >= 80 %}ap-score-excellent{% elif skill.avg_prof >= 60 %}ap-score-good{% elif skill.avg_prof >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">
+              {{ skill.avg_prof|floatformat:1 }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="ap-empty"><i class="fas fa-star"></i><p>No skills found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if skills.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ skills.start_index }}–{{ skills.end_index }} of {{ skills.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if skills.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ skills.previous_page_number }}&q={{ q }}&category={{ category_filter }}">‹</a></li>{% endif %}
+      {% for n in skills.paginator.page_range %}
+        {% if n == skills.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= skills.number|add:"-2" and n <= skills.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&category={{ category_filter }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if skills.has_next %}<li class="page-item"><a class="page-link" href="?page={{ skills.next_page_number }}&q={{ q }}&category={{ category_filter }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

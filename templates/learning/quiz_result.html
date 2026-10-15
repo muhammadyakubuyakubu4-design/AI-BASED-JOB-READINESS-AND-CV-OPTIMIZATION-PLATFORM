@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Quiz Result — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card dash-card text-center">
+        <div class="card-body py-5 px-4">
+          {% if attempt.passed %}
+          <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width:96px;height:96px;background:rgba(26,143,92,.12)">
+            <i class="fas fa-trophy fa-3x text-success"></i>
+          </div>
+          <h4 class="fw-bold mb-1">Congratulations, You Passed!</h4>
+          {% else %}
+          <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width:96px;height:96px;background:rgba(220,53,69,.1)">
+            <i class="fas fa-clipboard-list fa-3x text-danger"></i>
+          </div>
+          <h4 class="fw-bold mb-1">Almost There!</h4>
+          {% endif %}
+          <p class="text-muted">{{ attempt.quiz.title }} • Pass mark: 60%</p>
+
+          <!-- Score -->
+          <div class="d-flex justify-content-center my-4">
+            <div class="position-relative" style="width:160px;height:160px">
+              <canvas id="scoreRing"></canvas>
+              <div class="position-absolute top-50 start-50 translate-middle text-center">
+                <div class="display-5 fw-bold">{{ attempt.score }}/{{ attempt.total }}</div>
+                <div class="text-muted small">{{ attempt.percentage|floatformat:0 }}%</div>
+              </div>
+            </div>
+          </div>
+
+          {% if attempt.passed %}
+          <div class="alert alert-success small"><i class="fas fa-arrow-up me-2"></i>Your skill proficiency may have been increased for <strong>{{ plan.skill_name }}</strong>.</div>
+          {% else %}
+          <div class="alert alert-warning small"><i class="fas fa-redo me-2"></i>Review the lessons and try again to master {{ plan.skill_name }}.</div>
+          {% endif %}
+
+          <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a href="{% url 'learning:quiz' plan.pk %}" class="btn btn-primary"><i class="fas fa-redo me-2"></i>Retake Quiz</a>
+            <a href="{% url 'learning:plan' plan.pk %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Plan</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review answers -->
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-list-check me-2 text-primary"></i>Answer Review</h6>
+        </div>
+        <div class="card-body p-0">
+          {% for a in attempt.answers %}
+          <div class="review-item">
+            <div class="d-flex align-items-start gap-2">
+              {% if a.correct %}
+              <i class="fas fa-check-circle text-success mt-1"></i>
+              {% else %}
+              <i class="fas fa-times-circle text-danger mt-1"></i>
+              {% endif %}
+              <div>
+                <div class="fw-medium">{{ a.question }}</div>
+                {% if not a.correct and a.correct_answer %}
+                <div class="small text-success"><i class="fas fa-check me-1"></i>Correct answer: {{ a.correct_answer }}</div>
+                {% endif %}
+                {% if a.explanation %}
+                <div class="small text-muted mt-1">{{ a.explanation }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const pct = {{ attempt.percentage }};
+  const ctx = document.getElementById('scoreRing').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pct, 100 - pct],
+        backgroundColor: [pct >= 60 ? '#1a8f5c' : '#dc3545', '#e9ecef'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '78%',
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false } }
+    }
+  });
+</script>
+{% endblock %}

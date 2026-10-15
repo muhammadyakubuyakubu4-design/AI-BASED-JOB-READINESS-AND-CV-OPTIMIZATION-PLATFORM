@@ -1,0 +1,8 @@
+[ERROR] 2026-09-12 09:36:31,143 apps.authentication.adapter Social login failed: provider=google error=unknown
+[ERROR] 2026-09-12 09:36:41,558 apps.authentication.adapter Social login failed: provider=google error=unknown
+[ERROR] 2026-09-12 09:37:17,930 apps.authentication.adapter Social login failed: provider=google error=unknown
+[INFO] 2026-09-12 10:30:19,256 apps.authentication.otp OTP sent to muhammadyakubuyakubu4@gmail.com (user 3)
+[INFO] 2026-09-12 10:35:05,185 apps.authentication.otp OTP sent to abbaapk14@gmail.com (user 6)
+[INFO] 2026-09-12 11:42:07,797 apps.authentication.otp OTP sent to muhammadyak2021@gmail.com (user 27)
+[ERROR] 2026-09-29 19:22:00,836 apps.authentication.otp OTP email to musa@gmail.com FAILED: [Errno 11001] getaddrinfo failed
+[WARNING] 2026-09-29 19:22:00,839 apps.authentication.otp DEBUG OTP for musa@gmail.com: 831712

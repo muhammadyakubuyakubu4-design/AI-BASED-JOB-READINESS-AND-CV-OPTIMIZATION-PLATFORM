@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ user.full_name }} — Readiness Report</title>
+<style>
+  @page { margin: 0.6in 0.7in; size: letter; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #222; }
+  h1 { font-size: 20pt; margin-bottom: 2px; }
+  h2 { font-size: 12pt; color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 3px; margin: 16px 0 8px; }
+  .subtitle { color: #666; font-size: 9pt; margin-bottom: 16px; }
+  .header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #1a73e8; }
+  .section { margin-bottom: 14px; }
+  .row { display: flex; gap: 20px; margin-bottom: 10px; }
+  .col { flex: 1; }
+  .stat-box { text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px; }
+  .stat-num { font-size: 18pt; font-weight: 700; color: #1a73e8; }
+  .stat-label { font-size: 8pt; color: #666; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+  td, th { padding: 4px 8px; font-size: 9pt; text-align: left; border-bottom: 1px solid #eee; }
+  th { font-weight: 600; color: #555; }
+  .skill-tag { display: inline-block; padding: 2px 8px; background: #e8f0fe; color: #1a73e8; border-radius: 10px; font-size: 8pt; margin: 2px; }
+  .footer { text-align: center; font-size: 8pt; color: #999; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>{{ user.full_name }}</h1>
+  <div class="subtitle">{{ profile.current_role|default:"Job Seeker" }} · Report generated {{ today|date:"F d, Y" }}</div>
+</div>
+
+<div class="row">
+  <div class="col"><div class="stat-box"><div class="stat-num">{{ readiness }}</div><div class="stat-label">Readiness</div></div></div>
+  <div class="col"><div class="stat-box"><div class="stat-num">{{ avg_overall }}</div><div class="stat-label">Avg CV Score</div></div></div>
+  <div class="col"><div class="stat-box"><div class="stat-num">{{ avg_ats }}</div><div class="stat-label">ATS Score</div></div></div>
+  <div class="col"><div class="stat-box"><div class="stat-num">{{ skills.count }}</div><div class="stat-label">Skills</div></div></div>
+</div>
+
+<h2>CV Analysis</h2>
+{% if cvs %}
+<table><thead><tr><th>Filename</th><th>Overall</th><th>ATS</th><th>Format</th><th>Keywords</th></tr></thead>
+<tbody>{% for cv in cvs %}<tr>
+  <td>{{ cv.original_filename|truncatechars:30 }}</td>
+  <td>{{ cv.analysis.overall_score|floatformat:0 }}/100</td>
+  <td>{{ cv.analysis.ats_score|floatformat:0 }}/100</td>
+  <td>{{ cv.analysis.format_score|floatformat:0 }}/100</td>
+  <td>{{ cv.analysis.keyword_score|floatformat:0 }}/100</td>
+</tr>{% endfor %}</tbody></table>
+{% else %}<p>No CVs uploaded.</p>{% endif %}
+
+<h2>Assessment</h2>
+{% if latest_assessment %}
+<table><tr><th>Dimension</th><th>Score</th></tr>
+<tr><td>Readiness</td><td>{{ latest_assessment.readiness_score|floatformat:0 }}/100</td></tr>
+<tr><td>Technical</td><td>{{ latest_assessment.technical_score|floatformat:0 }}/100</td></tr>
+<tr><td>Soft Skills</td><td>{{ latest_assessment.soft_skills_score|floatformat:0 }}/100</td></tr>
+<tr><td>Experience</td><td>{{ latest_assessment.experience_score|floatformat:0 }}/100</td></tr>
+<tr><td>Education</td><td>{{ latest_assessment.education_score|floatformat:0 }}/100</td></tr>
+<tr><td>Career Level</td><td>{{ latest_assessment.get_career_level_display }}</td></tr>
+</table>
+{% else %}<p>No assessment taken.</p>{% endif %}
+
+<h2>Skills ({{ skills.count }})</h2>
+<p>{% for skill in skills %}<span class="skill-tag">{{ skill.skill_name }}</span> {% empty %}No skills added.{% endfor %}</p>
+
+<h2>Profile Info</h2>
+<table>
+  <tr><td>Email</td><td>{{ user.email }}</td></tr>
+  {% if profile.phone %}<tr><td>Phone</td><td>{{ profile.phone }}</td></tr>{% endif %}
+  {% if profile.location %}<tr><td>Location</td><td>{{ profile.location }}</td></tr>{% endif %}
+  {% if profile.education_level %}<tr><td>Education</td><td>{{ profile.get_education_level_display }}{% if profile.field_of_study %} in {{ profile.field_of_study }}{% endif %}</td></tr>{% endif %}
+  {% if profile.target_role %}<tr><td>Target Role</td><td>{{ profile.target_role }}</td></tr>{% endif %}
+</table>
+
+<div class="footer">CareerAI — AI-Powered Job Readiness Platform</div>
+</body>
+</html>

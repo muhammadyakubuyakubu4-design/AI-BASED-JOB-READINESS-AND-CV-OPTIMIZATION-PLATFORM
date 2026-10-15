@@ -1,0 +1,148 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}CV Detail — Admin{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="ap-chart-card mb-3">
+      <div class="ap-chart-header"><span class="ap-chart-title"><i class="fas fa-file-alt me-2 text-primary"></i>CV Info</span></div>
+      <div class="ap-chart-body">
+        <div class="ap-detail-section"><div class="ap-detail-label">Filename</div><div class="ap-detail-value fw-bold">{{ cv.original_filename }}</div></div>
+        <div class="ap-detail-section"><div class="ap-detail-label">File Type</div><div class="ap-detail-value"><span class="ap-badge ap-badge-secondary">{{ cv.file_type|upper }}</span></div></div>
+        <div class="ap-detail-section"><div class="ap-detail-label">File Size</div><div class="ap-detail-value">{{ cv.file_size_kb }} KB</div></div>
+        <div class="ap-detail-section"><div class="ap-detail-label">Uploaded By</div>
+          <div class="ap-detail-value"><a href="{% url 'admin_panel:user_detail' cv.user.pk %}" style="color:var(--ap-primary)">{{ cv.user.email }}</a></div>
+        </div>
+        <div class="ap-detail-section"><div class="ap-detail-label">Uploaded At</div><div class="ap-detail-value">{{ cv.uploaded_at|date:"M d, Y H:i" }}</div></div>
+        <div class="ap-detail-section"><div class="ap-detail-label">Active CV</div>
+          <div class="ap-detail-value">{% if cv.is_active %}<span class="ap-badge ap-badge-success">Yes</span>{% else %}<span class="ap-badge ap-badge-secondary">No</span>{% endif %}</div>
+        </div>
+      </div>
+      <div class="border-top px-3 py-3 d-grid gap-2">
+        <form method="post" action="{% url 'admin_panel:cv_delete' cv.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="ap-btn ap-btn-danger w-100" data-confirm="Delete this CV permanently?">
+            <i class="fas fa-trash me-2"></i>Delete CV
+          </button>
+        </form>
+        <a href="{% url 'admin_panel:cvs' %}" class="ap-btn ap-btn-outline w-100"><i class="fas fa-arrow-left me-2"></i>Back to CVs</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    {% if cv.has_analysis %}
+    {% with a=cv.analysis %}
+    <!-- Score Cards -->
+    <div class="row g-2 mb-3">
+      {% for label, score, color in scores_list %}
+      <div class="col-6 col-md-4 col-lg-2-4">
+        <div class="ap-stat-mini text-center">
+          <div class="ap-stat-mini-value" style="color:{{ color }}">{{ score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">{{ label }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <div class="col-6 col-md-4">
+        <div class="ap-stat-mini text-center" style="border:2px solid var(--ap-primary)">
+          <div class="ap-stat-mini-value text-success">{{ a.overall_score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">Overall Score</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="ap-stat-mini text-center">
+          <div class="ap-stat-mini-value" style="color:#0d6efd">{{ a.ats_score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">ATS Score</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="ap-stat-mini text-center">
+          <div class="ap-stat-mini-value" style="color:#20c997">{{ a.grammar_score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">Grammar</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="ap-stat-mini text-center">
+          <div class="ap-stat-mini-value" style="color:#fd7e14">{{ a.keyword_score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">Keywords</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="ap-stat-mini text-center">
+          <div class="ap-stat-mini-value" style="color:#6f42c1">{{ a.format_score|floatformat:0 }}</div>
+          <div class="ap-stat-mini-label">Format</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Score Progress Bars -->
+    <div class="ap-chart-card mb-3">
+      <div class="ap-chart-header"><span class="ap-chart-title"><i class="fas fa-chart-bar me-2 text-success"></i>Score Breakdown</span></div>
+      <div class="ap-chart-body">
+        {% for label, score, color in scores_list %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="fw-600">{{ label }}</small>
+            <small class="fw-bold">{{ score|floatformat:0 }}/100</small>
+          </div>
+          <div class="ap-progress">
+            <div class="ap-progress-bar" style="width:{{ score }}%;background:{{ color }}"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Skills & Suggestions Tabs -->
+    <div class="ap-chart-card">
+      <ul class="nav nav-tabs px-3 pt-2">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabSkills">Skills ({{ a.extracted_skills|length }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSuggestions">Suggestions ({{ a.suggestions|length }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabMissing">Missing Sections</button></li>
+        {% if a.ai_feedback %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAI">AI Feedback</button></li>{% endif %}
+      </ul>
+      <div class="tab-content p-3">
+        <div class="tab-pane fade show active" id="tabSkills">
+          {% if a.extracted_skills %}
+          <div class="d-flex flex-wrap gap-2">
+            {% for skill in a.extracted_skills %}
+            <span class="ap-badge ap-badge-primary">{{ skill }}</span>
+            {% endfor %}
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-star"></i><p>No skills extracted</p></div>{% endif %}
+        </div>
+        <div class="tab-pane fade" id="tabSuggestions">
+          {% if a.suggestions %}
+          {% for s in a.suggestions %}
+          <div class="border-bottom py-2">
+            {% if s.category %}<span class="ap-badge ap-badge-warning mb-1">{{ s.category }}</span>{% endif %}
+            <div style="font-size:.82rem">{% if s.suggestion %}{{ s.suggestion }}{% else %}{{ s }}{% endif %}</div>
+          </div>
+          {% endfor %}
+          {% else %}<div class="ap-empty"><i class="fas fa-lightbulb"></i><p>No suggestions</p></div>{% endif %}
+        </div>
+        <div class="tab-pane fade" id="tabMissing">
+          {% if a.missing_sections %}
+          {% for sec in a.missing_sections %}
+          <div class="d-flex align-items-center gap-2 py-2 border-bottom">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            <span style="font-size:.85rem">Missing: <strong>{{ sec|title }}</strong> section</span>
+          </div>
+          {% endfor %}
+          {% else %}<div class="ap-empty"><i class="fas fa-check-circle text-success"></i><p>All key sections present</p></div>{% endif %}
+        </div>
+        {% if a.ai_feedback %}
+        <div class="tab-pane fade" id="tabAI">
+          <div style="font-size:.85rem;line-height:1.7;background:var(--ap-bg);border-radius:8px;padding:16px">{{ a.ai_feedback }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% else %}
+    <div class="ap-chart-card">
+      <div class="ap-empty"><i class="fas fa-robot"></i><p>This CV has not been analysed yet.</p></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

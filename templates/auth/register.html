@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" data-auth-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — CareerAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+  {% load static %}
+  <style>
+    :root {
+      --auth-bg:      #050a14;
+      --auth-bg2:     #07101e;
+      --auth-accent:  #00d4ff;
+      --auth-accent2: #0099cc;
+      --auth-amber:   #ff8c00;
+      --auth-text:    #e0eaf8;
+      --auth-muted:   #7a9bbf;
+      --auth-card:    rgba(0,20,45,0.85);
+      --auth-border:  rgba(0,212,255,0.2);
+      --auth-glow:    0 0 24px rgba(0,212,255,0.3);
+      --auth-title:   #fff;
+      --auth-btn-text:#050a14;
+      --auth-input-bg: rgba(0,20,45,.9);
+      --auth-overlay: rgba(5,10,20,.85);
+      --auth-overlay2: rgba(0,30,60,.75);
+    }
+    [data-auth-theme="light"] {
+      --auth-bg:      #f4f7fc;
+      --auth-bg2:     #eaf0f8;
+      --auth-accent:  #2563eb;
+      --auth-accent2: #1d4ed8;
+      --auth-amber:   #d97706;
+      --auth-text:    #1e293b;
+      --auth-muted:   #64748b;
+      --auth-card:    rgba(255,255,255,0.95);
+      --auth-border:  rgba(37,99,235,0.15);
+      --auth-glow:    0 0 20px rgba(37,99,235,0.12);
+      --auth-title:   #0f172a;
+      --auth-btn-text:#ffffff;
+      --auth-input-bg: #ffffff;
+      --auth-overlay: rgba(255,255,255,.85);
+      --auth-overlay2: rgba(255,255,255,.70);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--auth-bg);
+      color: var(--auth-text);
+      min-height: 100vh;
+      display: flex;
+    }
+    .auth-wrapper { display: flex; width: 100%; min-height: 100vh; }
+
+    /* ── LEFT PANEL ── */
+    .auth-panel-left {
+      width: 45%; flex-shrink: 0;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; background: var(--auth-bg2);
+    }
+    .auth-panel-left .bg-img {
+      position: absolute; inset: 0;
+      background: url("{% static 'images/jimage.jpg' %}") center/cover no-repeat;
+      opacity: .35;
+    }
+    .auth-panel-left::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--auth-overlay), var(--auth-overlay2));
+    }
+    .auth-panel-content { position: relative; z-index: 2; padding: 48px 52px; }
+    .accent-line {
+      position: absolute; right: 0; top: 10%; bottom: 10%; width: 2px; z-index: 3;
+      background: linear-gradient(to bottom, transparent, var(--auth-accent), transparent);
+    }
+    .auth-brand {
+      font-size: 1.6rem; font-weight: 700; color: var(--auth-accent);
+      text-shadow: 0 0 16px var(--auth-brand-glow); margin-bottom: 36px;
+    }
+    :root    { --auth-brand-glow: rgba(0,212,255,.6); }
+    [data-auth-theme="light"] { --auth-brand-glow: rgba(37,99,235,.4); }
+    .auth-panel-title { font-size: 2rem; font-weight: 700; color: var(--auth-title); line-height: 1.25; margin-bottom: 14px; }
+    .auth-panel-subtitle { color: var(--auth-muted); font-size: .95rem; line-height: 1.7; margin-bottom: 36px; }
+    .auth-feature { display: flex; align-items: center; gap: 12px; color: var(--auth-text); font-size: .93rem; margin-bottom: 14px; }
+    .auth-feature i { color: var(--auth-accent); font-size: 1rem; text-shadow: 0 0 8px var(--auth-feature-glow); }
+    :root    { --auth-feature-glow: rgba(0,212,255,.5); }
+    [data-auth-theme="light"] { --auth-feature-glow: rgba(37,99,235,.3); }
+
+    /* ── RIGHT PANEL ── */
+    .auth-panel-right {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px; background: var(--auth-bg); overflow-y: auto;
+    }
+    .auth-form-container { width: 100%; max-width: 420px; padding: 10px 0; }
+    .auth-logo-mobile {
+      text-align: center; margin-bottom: 20px;
+      font-size: 1.5rem; font-weight: 700; color: var(--auth-accent);
+      text-shadow: 0 0 14px var(--auth-brand-glow);
+    }
+    .auth-title { font-size: 1.65rem; font-weight: 700; color: var(--auth-title); margin-bottom: 4px; }
+    .auth-subtitle { color: var(--auth-muted); font-size: .9rem; margin-bottom: 22px; }
+
+    /* ── FORM ── */
+    .form-label { color: var(--auth-muted); font-size: .83rem; margin-bottom: 5px; font-weight: 500; }
+    .input-group-text {
+      background: var(--auth-input-bg); border: 1px solid var(--auth-border); color: var(--auth-accent);
+    }
+    .form-control {
+      background: var(--auth-input-bg) !important;
+      border: 1px solid var(--auth-border) !important;
+      color: var(--auth-text) !important;
+      font-size: .9rem; padding: 9px 12px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus {
+      border-color: var(--auth-accent) !important;
+      box-shadow: 0 0 0 3px var(--auth-focus-glow) !important;
+      outline: none;
+    }
+    :root    { --auth-focus-glow: rgba(0,212,255,.12); }
+    [data-auth-theme="light"] { --auth-focus-glow: rgba(37,99,235,.12); }
+    .form-control::placeholder { color: var(--auth-placeholder); }
+    :root    { --auth-placeholder: rgba(122,155,191,.45); }
+    [data-auth-theme="light"] { --auth-placeholder: rgba(100,116,139,.4); }
+
+    /* ── BUTTON ── */
+    .btn-auth {
+      background: linear-gradient(135deg, var(--auth-accent), var(--auth-accent2));
+      color: var(--auth-btn-text) !important; border: none;
+      padding: 12px; font-weight: 700; font-size: .95rem;
+      border-radius: 10px; transition: all .25s;
+    }
+    .btn-auth:hover { box-shadow: 0 0 28px var(--auth-glow); transform: translateY(-1px); }
+
+    /* ── DIVIDER ── */
+    .auth-divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 18px 0; color: var(--auth-muted); font-size: .82rem;
+    }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--auth-border); }
+
+    /* ── LINKS ── */
+    .auth-switch { color: var(--auth-muted); font-size: .9rem; }
+    .auth-switch a { color: var(--auth-accent) !important; text-decoration: none; font-weight: 600; }
+    .auth-switch a:hover { text-shadow: 0 0 8px var(--auth-link-glow); }
+    :root    { --auth-link-glow: rgba(0,212,255,.5); }
+    [data-auth-theme="light"] { --auth-link-glow: rgba(37,99,235,.3); }
+    .link-back { color: var(--auth-muted) !important; font-size: .83rem; text-decoration: none; }
+    .link-back:hover { color: var(--auth-accent) !important; }
+
+    /* ── ALERTS ── */
+    .alert-danger { background: rgba(220,53,69,.1); border: 1px solid rgba(220,53,69,.3); color: #ff6b7a; border-radius: 8px; font-size: .88rem; }
+    .alert-success { background: rgba(0,212,255,.08); border: 1px solid rgba(0,212,255,.25); color: var(--auth-accent); border-radius: 8px; font-size: .88rem; }
+    .text-danger { color: #ff6b7a !important; }
+
+    /* ── ORBS ── */
+    .orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(80px); opacity: var(--auth-orb-opacity); }
+    :root    { --auth-orb-opacity: .1; }
+    [data-auth-theme="light"] { --auth-orb-opacity: .05; }
+    .orb-1 { width: 350px; height: 350px; background: var(--auth-accent); top: -80px; right: -80px; }
+    .orb-2 { width: 280px; height: 280px; background: var(--auth-amber); bottom: -60px; left: 45%; }
+
+    /* ── THEME TOGGLE ── */
+    .theme-toggle-auth {
+      position: fixed; top: 20px; right: 20px; z-index: 999;
+      background: none; border: 1px solid var(--auth-border); border-radius: 50%;
+      width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+      color: var(--auth-accent); font-size: .95rem; cursor: pointer;
+      backdrop-filter: blur(8px); transition: all .25s;
+    }
+    .theme-toggle-auth:hover { box-shadow: var(--auth-glow); }
+  </style>
+</head>
+<body>
+<button class="theme-toggle-auth" id="authThemeToggle" title="Toggle light/dark mode">
+  <i class="fas fa-moon" id="authThemeIcon"></i>
+</button>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="auth-wrapper">
+  <!-- Left Panel -->
+  <div class="auth-panel-left d-none d-lg-flex">
+    <div class="bg-img"></div>
+    <div class="accent-line"></div>
+    <div class="auth-panel-content">
+      <div class="auth-brand"><i class="fas fa-brain me-2"></i>CareerAI</div>
+      <h2 class="auth-panel-title">Start Your Career<br/>Journey Today</h2>
+      <p class="auth-panel-subtitle">Join thousands of professionals using AI to accelerate their careers.</p>
+      <div class="auth-features">
+        <div class="auth-feature"><i class="fas fa-check-circle"></i> 100% Free to start</div>
+        <div class="auth-feature"><i class="fas fa-check-circle"></i> Instant CV analysis</div>
+        <div class="auth-feature"><i class="fas fa-check-circle"></i> Personalized recommendations</div>
+        <div class="auth-feature"><i class="fas fa-check-circle"></i> Interview question generator</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="auth-panel-right">
+    <div class="auth-form-container">
+      <div class="auth-logo-mobile d-lg-none"><i class="fas fa-brain me-2"></i>CareerAI</div>
+      <h2 class="auth-title">Create your account</h2>
+      <p class="auth-subtitle">Join CareerAI and supercharge your job search.</p>
+
+      {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="POST" action="{% url 'authentication:register' %}">
+        {% csrf_token %}
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label">First Name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-6">
+            <label class="form-label">Last Name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-at"></i></span>
+            {{ form.username }}
+          </div>
+          {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+            {{ form.email }}
+          </div>
+          {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            {{ form.password1 }}
+          </div>
+          {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            {{ form.password2 }}
+          </div>
+          {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+        </div>
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <button type="submit" class="btn btn-auth w-100">
+          <i class="fas fa-user-plus me-2"></i>Create Account
+        </button>
+      </form>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      {% load socialaccount %}
+      <a href="{% provider_login_url 'google' %}" class="btn btn-outline-light w-100 mb-3" style="border-color: var(--auth-border); color: var(--auth-text); padding: 10px; border-radius: 10px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.54 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.98-5.97z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign up with Google
+      </a>
+
+      <p class="text-center auth-switch">
+        Already have an account?
+        <a href="{% url 'authentication:login' %}">Sign In</a>
+      </p>
+      <p class="text-center mt-2">
+        <a href="/" class="link-back"><i class="fas fa-arrow-left me-1"></i>Back to Home</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('authThemeToggle');
+  const icon = document.getElementById('authThemeIcon');
+  const current = localStorage.getItem('auth_theme') || 'dark';
+  html.setAttribute('data-auth-theme', current);
+  if (icon) icon.className = current === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+  btn && btn.addEventListener('click', function() {
+    const next = html.getAttribute('data-auth-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-auth-theme', next);
+    if (icon) icon.className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    localStorage.setItem('auth_theme', next);
+  });
+})();
+</script>
+</body>
+</html>

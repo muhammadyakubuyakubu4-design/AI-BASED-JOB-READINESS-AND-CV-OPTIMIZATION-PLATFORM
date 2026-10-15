@@ -1,0 +1,88 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Job Management — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-briefcase"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total Jobs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#0d6efd;--kpi-bg:#e7f3ff">
+      <div class="ap-kpi-icon"><i class="fas fa-check-double"></i></div>
+      <div><div class="ap-kpi-value">{{ total_matches }}</div><div class="ap-kpi-label">Total Matches</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#fd7e14;--kpi-bg:#fff3e0">
+      <div class="ap-kpi-icon"><i class="fas fa-percentage"></i></div>
+      <div><div class="ap-kpi-value">{{ avg_match }}%</div><div class="ap-kpi-label">Avg Match Score</div></div>
+    </div>
+  </div>
+</div>
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by job title, company, or user email…" data-auto-submit>
+    </div>
+    {% if q %}
+    <a href="{% url 'admin_panel:jobs' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-briefcase me-2 text-primary"></i>Job Descriptions <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>#</th><th>Title</th><th>Company</th><th>User</th><th>Matches</th><th>Avg Score</th><th>Created</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+        <tr>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ job.pk }}</td>
+          <td style="font-size:.82rem;font-weight:600">{{ job.title|truncatechars:30 }}</td>
+          <td style="font-size:.78rem;color:var(--ap-text-muted)">{{ job.company|truncatechars:20 }}</td>
+          <td><a href="{% url 'admin_panel:user_detail' job.user.pk %}" style="font-size:.78rem;color:var(--ap-primary)">{{ job.user.email|truncatechars:24 }}</a></td>
+          <td><span class="ap-badge ap-badge-secondary">{{ job.match_count }}</span></td>
+          <td>
+            {% if job.avg_score %}
+            <span class="ap-score-pill {% if job.avg_score >= 80 %}ap-score-excellent{% elif job.avg_score >= 60 %}ap-score-good{% elif job.avg_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">
+              {{ job.avg_score|floatformat:0 }}%
+            </span>
+            {% else %}<span class="ap-badge ap-badge-secondary">—</span>{% endif %}
+          </td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ job.created_at|date:"M d, Y" }}</td>
+          <td>
+            <form method="post" action="{% url 'admin_panel:job_delete' job.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="ap-btn ap-btn-danger ap-btn-sm ap-btn-icon"
+                data-confirm="Delete this job description? This cannot be undone." title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="ap-empty"><i class="fas fa-briefcase"></i><p>No jobs found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if jobs.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ jobs.start_index }}–{{ jobs.end_index }} of {{ jobs.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if jobs.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ jobs.previous_page_number }}&q={{ q }}">‹</a></li>{% endif %}
+      {% for n in jobs.paginator.page_range %}
+        {% if n == jobs.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= jobs.number|add:"-2" and n <= jobs.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if jobs.has_next %}<li class="page-item"><a class="page-link" href="?page={{ jobs.next_page_number }}&q={{ q }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

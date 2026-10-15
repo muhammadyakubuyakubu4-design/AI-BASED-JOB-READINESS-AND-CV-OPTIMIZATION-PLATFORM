@@ -1,0 +1,165 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Users — Admin{% endblock %}
+{% block content %}
+<div class="ap-table-card">
+  <!-- Filter Bar -->
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by name, email, username…" data-auto-submit>
+    </div>
+    <select name="role" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Roles</option>
+      <option value="user" {% if role_filter == 'user' %}selected{% endif %}>User</option>
+      <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+    </select>
+    <select name="status" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Status</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <button type="submit" class="ap-btn ap-btn-primary ap-btn-sm"><i class="fas fa-search"></i> Search</button>
+    {% if q or role_filter or status_filter %}
+    <a href="{% url 'admin_panel:users' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="ap-table-header">
+    <span class="ap-table-title">
+      <i class="fas fa-users me-2 text-success"></i>
+      Users <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span>
+    </span>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_panel:export_users' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-download"></i> Export CSV</a>
+    </div>
+  </div>
+
+  <form id="bulkForm" method="post" action="{% url 'admin_panel:user_bulk_action' %}">
+    {% csrf_token %}
+  <div class="ap-bulk-bar d-none" id="bulkBar">
+    <span class="small me-2"><span id="bulkCount">0</span> selected</span>
+    <button type="submit" name="action" value="activate" class="ap-btn ap-btn-success ap-btn-sm"><i class="fas fa-check me-1"></i>Activate</button>
+    <button type="submit" name="action" value="deactivate" class="ap-btn ap-btn-warning ap-btn-sm"><i class="fas fa-ban me-1"></i>Deactivate</button>
+    <button type="submit" name="action" value="delete" class="ap-btn ap-btn-danger ap-btn-sm" data-confirm="Delete selected users? This cannot be undone."><i class="fas fa-trash me-1"></i>Delete</button>
+    <button type="button" class="ap-btn ap-btn-outline ap-btn-sm" onclick="clearBulk()"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr>
+          <th style="width:32px"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+          <th>#</th><th>User</th><th>Role</th><th>Status</th>
+          <th>Verified</th><th>CVs</th><th>Assessments</th><th>Joined</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><input type="checkbox" name="user_ids" value="{{ u.pk }}" class="bulk-check" onchange="updateBulkBar()"></td>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ u.pk }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="ap-user-avatar">{{ u.first_name|first|upper }}{{ u.last_name|first|upper }}</div>
+              <div>
+                <div style="font-size:.82rem;font-weight:600">{{ u.get_full_name|default:u.username }}</div>
+                <div style="font-size:.72rem;color:var(--ap-text-muted)">{{ u.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="ap-badge {% if u.role == 'admin' %}ap-badge-danger{% else %}ap-badge-primary{% endif %}">{{ u.role }}</span></td>
+          <td>
+            {% if u.is_active %}
+              <span class="ap-badge ap-badge-success"><i class="fas fa-circle" style="font-size:.5rem"></i> Active</span>
+            {% else %}
+              <span class="ap-badge ap-badge-danger"><i class="fas fa-circle" style="font-size:.5rem"></i> Suspended</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.email_verified %}
+              <span class="ap-badge ap-badge-success" title="Email verified"><i class="fas fa-check-circle"></i></span>
+            {% else %}
+              <span class="ap-badge ap-badge-secondary" title="Not verified"><i class="fas fa-times-circle"></i></span>
+            {% endif %}
+          </td>
+          <td><span class="ap-badge ap-badge-secondary">{{ u.cv_count }}</span></td>
+          <td><span class="ap-badge ap-badge-secondary">{{ u.assessment_count }}</span></td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ u.date_joined|date:"M d, Y" }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'admin_panel:user_detail' u.pk %}" class="ap-btn ap-btn-outline ap-btn-sm ap-btn-icon" data-bs-toggle="tooltip" title="View Details"><i class="fas fa-eye"></i></a>
+              <form method="post" action="{% url 'admin_panel:user_toggle_status' u.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="ap-btn ap-btn-sm ap-btn-icon {% if u.is_active %}ap-btn-warning{% else %}ap-btn-outline{% endif %}"
+                  data-confirm="{% if u.is_active %}Suspend this user?{% else %}Activate this user?{% endif %}"
+                  data-bs-toggle="tooltip" title="{% if u.is_active %}Suspend{% else %}Activate{% endif %}">
+                  <i class="fas {% if u.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                </button>
+              </form>
+              {% if u.pk != request.user.pk %}
+              <form method="post" action="{% url 'admin_panel:user_delete' u.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="ap-btn ap-btn-danger ap-btn-sm ap-btn-icon"
+                  data-confirm="Permanently delete {{ u.email }}? This cannot be undone."
+                  data-bs-toggle="tooltip" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10"><div class="ap-empty"><i class="fas fa-users"></i><p>No users found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  </form>
+
+<script>
+function toggleAll(source) {
+  document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = source.checked);
+  updateBulkBar();
+}
+function updateBulkBar() {
+  const checked = document.querySelectorAll('.bulk-check:checked').length;
+  const bar = document.getElementById('bulkBar');
+  if (checked > 0) {
+    bar.classList.remove('d-none');
+    document.getElementById('bulkCount').textContent = checked;
+  } else {
+    bar.classList.add('d-none');
+  }
+}
+function clearBulk() {
+  document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = false);
+  document.getElementById('selectAll').checked = false;
+  updateBulkBar();
+}
+</script>
+
+  <!-- Pagination -->
+  {% if users.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ users.start_index }}–{{ users.end_index }} of {{ users.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if users.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.previous_page_number }}&q={{ q }}&role={{ role_filter }}&status={{ status_filter }}">‹</a></li>
+      {% endif %}
+      {% for n in users.paginator.page_range %}
+        {% if n == users.number %}
+        <li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= users.number|add:"-2" and n <= users.number|add:"2" %}
+        <li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&role={{ role_filter }}&status={{ status_filter }}">{{ n }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if users.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.next_page_number }}&q={{ q }}&role={{ role_filter }}&status={{ status_filter }}">›</a></li>
+      {% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

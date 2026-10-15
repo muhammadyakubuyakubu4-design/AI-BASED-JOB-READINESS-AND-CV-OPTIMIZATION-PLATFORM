@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}CV History — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="fas fa-history text-primary me-2"></i>CV Upload History</h5>
+    <a href="{% url 'cv_analyzer:upload' %}" class="btn btn-success btn-sm">
+      <i class="fas fa-plus me-1"></i>Upload New CV
+    </a>
+  </div>
+
+  {% if cvs %}
+  <div class="row g-4">
+    {% for cv in cvs %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card dash-card cv-history-card {% if cv.is_active %}border-success{% endif %}">
+        {% if cv.is_active %}
+        <div class="active-cv-badge"><i class="fas fa-star me-1"></i>Active</div>
+        {% endif %}
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="cv-file-icon-lg text-{% if cv.file_type == 'pdf' %}danger{% else %}primary{% endif %}">
+              <i class="fas fa-file-{{ cv.file_type|lower }}"></i>
+            </div>
+            <div class="flex-grow-1 overflow-hidden">
+              <div class="fw-semibold text-truncate">{{ cv.original_filename }}</div>
+              <div class="text-muted small">{{ cv.file_type|upper }} • {{ cv.file_size_kb }} KB</div>
+              <div class="text-muted small">{{ cv.uploaded_at|date:"M d, Y" }}</div>
+            </div>
+          </div>
+
+          {% if cv.has_analysis %}
+          <div class="cv-score-row mb-3">
+            <div class="cv-score-item">
+              <div class="cv-score-label">Overall</div>
+              <div class="cv-score-bar">
+                <div class="progress" style="height:6px">
+                  <div class="progress-bar bg-{% if cv.analysis.overall_score >= 80 %}success{% elif cv.analysis.overall_score >= 60 %}primary{% elif cv.analysis.overall_score >= 40 %}warning{% else %}danger{% endif %}" style="width:{{ cv.analysis.overall_score }}%"></div>
+                </div>
+              </div>
+              <div class="cv-score-value">{{ cv.analysis.overall_score|floatformat:0 }}</div>
+            </div>
+            <div class="cv-score-item">
+              <div class="cv-score-label">ATS</div>
+              <div class="cv-score-bar">
+                <div class="progress" style="height:6px">
+                  <div class="progress-bar bg-info" style="width:{{ cv.analysis.ats_score }}%"></div>
+                </div>
+              </div>
+              <div class="cv-score-value">{{ cv.analysis.ats_score|floatformat:0 }}</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-warning py-2 small mb-3">
+            <i class="fas fa-clock me-1"></i>Not analyzed yet
+          </div>
+          {% endif %}
+
+          <div class="d-flex gap-2 flex-wrap">
+            {% if cv.has_analysis %}
+            <a href="{% url 'cv_analyzer:analysis' cv.pk %}" class="btn btn-success btn-sm">
+              <i class="fas fa-chart-bar me-1"></i>Analysis
+            </a>
+            {% else %}
+            <a href="{% url 'cv_analyzer:reanalyze' cv.pk %}" class="btn btn-warning btn-sm">
+              <i class="fas fa-sync me-1"></i>Analyze
+            </a>
+            {% endif %}
+            {% if not cv.is_active %}
+            <a href="{% url 'cv_analyzer:set_active' cv.pk %}" class="btn btn-outline-success btn-sm">
+              <i class="fas fa-star me-1"></i>Set Active
+            </a>
+            {% endif %}
+            <form method="POST" action="{% url 'cv_analyzer:delete' cv.pk %}" class="d-inline" onsubmit="return confirm('Delete this CV?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state-large text-center py-5">
+    <i class="fas fa-file-upload fa-4x text-muted mb-4"></i>
+    <h5 class="text-muted">No CVs uploaded yet</h5>
+    <p class="text-muted">Upload your first CV to get started with AI analysis</p>
+    <a href="{% url 'cv_analyzer:upload' %}" class="btn btn-success mt-2">
+      <i class="fas fa-upload me-2"></i>Upload Your CV
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

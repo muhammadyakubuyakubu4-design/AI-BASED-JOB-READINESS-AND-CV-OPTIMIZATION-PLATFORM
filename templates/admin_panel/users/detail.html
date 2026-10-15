@@ -1,0 +1,244 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}User: {{ target_user.email }} — Admin{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <!-- Left: Profile Card -->
+  <div class="col-lg-4">
+    <div class="ap-chart-card mb-3">
+      <div class="ap-chart-body text-center py-4">
+        <div class="ap-user-avatar mx-auto mb-3" style="width:72px;height:72px;font-size:1.6rem">
+          {{ target_user.first_name|first|upper }}{{ target_user.last_name|first|upper }}
+        </div>
+        <h5 class="fw-bold mb-1">{{ target_user.get_full_name|default:target_user.username }}</h5>
+        <div style="font-size:.82rem;color:var(--ap-text-muted)">{{ target_user.email }}</div>
+        <div class="mt-2 d-flex justify-content-center gap-2">
+          <span class="ap-badge {% if target_user.role == 'admin' %}ap-badge-danger{% else %}ap-badge-primary{% endif %}">{{ target_user.role }}</span>
+          {% if target_user.is_active %}
+          <span class="ap-badge ap-badge-success">Active</span>
+          {% else %}
+          <span class="ap-badge ap-badge-danger">Suspended</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="border-top px-4 py-3">
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Username</div>
+          <div class="ap-detail-value">{{ target_user.username }}</div>
+        </div>
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Date Joined</div>
+          <div class="ap-detail-value">{{ target_user.date_joined|date:"M d, Y H:i" }}</div>
+        </div>
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Last Login</div>
+          <div class="ap-detail-value">{{ target_user.last_login|date:"M d, Y H:i"|default:"Never" }}</div>
+        </div>
+        {% if target_user.profile %}
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Current Role</div>
+          <div class="ap-detail-value">{{ target_user.profile.current_role|default:"—" }}</div>
+        </div>
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Location</div>
+          <div class="ap-detail-value">{{ target_user.profile.location|default:"—" }}</div>
+        </div>
+        <div class="ap-detail-section">
+          <div class="ap-detail-label">Readiness Score</div>
+          <div class="ap-detail-value fw-bold text-success">{{ target_user.profile.readiness_score|floatformat:1 }}/100</div>
+        </div>
+        {% endif %}
+      </div>
+      <!-- Actions -->
+      <div class="border-top px-4 py-3 d-grid gap-2">
+        <form method="post" action="{% url 'admin_panel:user_toggle_status' target_user.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="ap-btn w-100 {% if target_user.is_active %}ap-btn-warning{% else %}ap-btn-primary{% endif %}"
+            data-confirm="{% if target_user.is_active %}Suspend this user?{% else %}Activate this user?{% endif %}">
+            <i class="fas {% if target_user.is_active %}fa-ban{% else %}fa-check-circle{% endif %} me-2"></i>
+            {% if target_user.is_active %}Suspend User{% else %}Activate User{% endif %}
+          </button>
+        </form>
+        {% if target_user.pk != request.user.pk %}
+        <form method="post" action="{% url 'admin_panel:user_make_admin' target_user.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="ap-btn ap-btn-outline w-100">
+            <i class="fas fa-shield-alt me-2"></i>
+            {% if target_user.role == 'admin' %}Revoke Admin{% else %}Grant Admin{% endif %}
+          </button>
+        </form>
+        <form method="post" action="{% url 'admin_panel:user_delete' target_user.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="ap-btn ap-btn-danger w-100"
+            data-confirm="Permanently delete {{ target_user.email }}? All their data will be lost.">
+            <i class="fas fa-trash me-2"></i>Delete User
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Skills -->
+    {% if skills %}
+    <div class="ap-chart-card">
+      <div class="ap-chart-header"><span class="ap-chart-title"><i class="fas fa-star me-2 text-warning"></i>Skills ({{ skills.count }})</span></div>
+      <div class="ap-chart-body" style="max-height:200px;overflow-y:auto">
+        {% for skill in skills %}
+        <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:.8rem">
+          <span>{{ skill.skill_name }}</span>
+          <div class="d-flex gap-1">
+            <span class="ap-badge ap-badge-secondary">{{ skill.get_category_display }}</span>
+            <span class="ap-badge ap-badge-primary">{{ skill.get_proficiency_display }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Activity Tabs -->
+  <div class="col-lg-8">
+    <div class="ap-chart-card">
+      <ul class="nav nav-tabs px-3 pt-2" id="userTabs">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCVs">CVs ({{ cvs.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAssessments">Assessments ({{ assessments.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabMatches">Job Matches ({{ job_matches.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabInterviews">Interviews ({{ interview_sessions.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabNotifs">Notifications</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabActivity">Activity</button></li>
+      </ul>
+      <div class="tab-content p-3">
+        <!-- CVs Tab -->
+        <div class="tab-pane fade show active" id="tabCVs">
+          {% if cvs %}
+          <div class="table-responsive">
+            <table class="ap-table">
+              <thead><tr><th>File</th><th>Type</th><th>Overall</th><th>ATS</th><th>Uploaded</th><th></th></tr></thead>
+              <tbody>
+                {% for cv in cvs %}
+                <tr>
+                  <td style="font-size:.82rem">{{ cv.original_filename|truncatechars:28 }}</td>
+                  <td><span class="ap-badge ap-badge-secondary">{{ cv.file_type|upper }}</span></td>
+                  <td>
+                    {% if cv.has_analysis %}
+                    <span class="ap-score-pill {% if cv.analysis.overall_score >= 80 %}ap-score-excellent{% elif cv.analysis.overall_score >= 60 %}ap-score-good{% elif cv.analysis.overall_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">
+                      {{ cv.analysis.overall_score|floatformat:0 }}
+                    </span>
+                    {% else %}<span class="ap-badge ap-badge-secondary">—</span>{% endif %}
+                  </td>
+                  <td style="font-size:.8rem">{% if cv.has_analysis %}{{ cv.analysis.ats_score|floatformat:0 }}{% else %}—{% endif %}</td>
+                  <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ cv.uploaded_at|date:"M d, Y" }}</td>
+                  <td><a href="{% url 'admin_panel:cv_detail' cv.pk %}" class="ap-btn ap-btn-outline ap-btn-sm ap-btn-icon"><i class="fas fa-eye"></i></a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-file-alt"></i><p>No CVs uploaded</p></div>{% endif %}
+        </div>
+
+        <!-- Assessments Tab -->
+        <div class="tab-pane fade" id="tabAssessments">
+          {% if assessments %}
+          <div class="table-responsive">
+            <table class="ap-table">
+              <thead><tr><th>Readiness</th><th>Technical</th><th>Soft Skills</th><th>Level</th><th>Date</th></tr></thead>
+              <tbody>
+                {% for a in assessments %}
+                <tr>
+                  <td><span class="ap-score-pill {% if a.readiness_score >= 80 %}ap-score-excellent{% elif a.readiness_score >= 60 %}ap-score-good{% elif a.readiness_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">{{ a.readiness_score|floatformat:0 }}%</span></td>
+                  <td style="font-size:.82rem">{{ a.technical_score|floatformat:0 }}%</td>
+                  <td style="font-size:.82rem">{{ a.soft_skills_score|floatformat:0 }}%</td>
+                  <td><span class="ap-badge ap-badge-primary">{{ a.get_career_level_display }}</span></td>
+                  <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ a.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-clipboard-check"></i><p>No assessments</p></div>{% endif %}
+        </div>
+
+        <!-- Job Matches Tab -->
+        <div class="tab-pane fade" id="tabMatches">
+          {% if job_matches %}
+          <div class="table-responsive">
+            <table class="ap-table">
+              <thead><tr><th>Job Title</th><th>Company</th><th>Match</th><th>Date</th></tr></thead>
+              <tbody>
+                {% for m in job_matches %}
+                <tr>
+                  <td style="font-size:.82rem;font-weight:600">{{ m.job_description.title|truncatechars:30 }}</td>
+                  <td style="font-size:.78rem;color:var(--ap-text-muted)">{{ m.job_description.company|default:"—" }}</td>
+                  <td><span class="ap-score-pill {% if m.match_score >= 80 %}ap-score-excellent{% elif m.match_score >= 60 %}ap-score-good{% elif m.match_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">{{ m.match_score|floatformat:0 }}%</span></td>
+                  <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ m.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-briefcase"></i><p>No job matches</p></div>{% endif %}
+        </div>
+
+        <!-- Interviews Tab -->
+        <div class="tab-pane fade" id="tabInterviews">
+          {% if interview_sessions %}
+          <div class="table-responsive">
+            <table class="ap-table">
+              <thead><tr><th>Job Title</th><th>Difficulty</th><th>Questions</th><th>Date</th></tr></thead>
+              <tbody>
+                {% for s in interview_sessions %}
+                <tr>
+                  <td style="font-size:.82rem;font-weight:600">{{ s.job_title }}</td>
+                  <td><span class="ap-badge ap-badge-info">{{ s.get_difficulty_display }}</span></td>
+                  <td style="font-size:.82rem">{{ s.total_questions }}</td>
+                  <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ s.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-comments"></i><p>No interview sessions</p></div>{% endif %}
+        </div>
+
+        <!-- Activity Tab -->
+        <div class="tab-pane fade" id="tabActivity">
+          {% if activity_logs %}
+          <div style="max-height:400px;overflow-y:auto;">
+            {% for log in activity_logs %}
+            <div class="d-flex gap-3 py-2 border-bottom align-items-start">
+              <span class="ap-badge
+                {% if log.action_type == 'create' %}ap-badge-success
+                {% elif log.action_type == 'update' %}ap-badge-info
+                {% elif log.action_type == 'delete' %}ap-badge-danger
+                {% else %}ap-badge-secondary{% endif %}">{{ log.get_action_type_display }}</span>
+              <div class="flex-grow-1">
+                <div style="font-size:.8rem">{{ log.description }}</div>
+                <div style="font-size:.7rem;color:var(--ap-text-muted)">{{ log.created_at|date:"M d, Y H:i" }}{% if log.model_name %} · {{ log.model_name }}{% endif %}{% if log.ip_address %} · {{ log.ip_address }}{% endif %}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}<div class="ap-empty"><i class="fas fa-clipboard-list"></i><p>No activity logged yet</p></div>{% endif %}
+        </div>
+
+        <!-- Notifications Tab -->
+        <div class="tab-pane fade" id="tabNotifs">
+          {% if notifications %}
+          {% for n in notifications %}
+          <div class="d-flex gap-3 py-2 border-bottom align-items-start">
+            <span class="ap-badge {% if n.is_read %}ap-badge-secondary{% else %}ap-badge-primary{% endif %} mt-1">{{ n.notification_type }}</span>
+            <div>
+              <div style="font-size:.82rem;font-weight:600">{{ n.title }}</div>
+              <div style="font-size:.78rem;color:var(--ap-text-muted)">{{ n.message|truncatechars:80 }}</div>
+              <div style="font-size:.72rem;color:var(--ap-text-muted)">{{ n.created_at|date:"M d, Y H:i" }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}<div class="ap-empty"><i class="fas fa-bell"></i><p>No notifications</p></div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

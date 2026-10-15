@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}Career Path — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Generate Banner -->
+  <div class="career-banner mb-4">
+    <div class="career-banner-content">
+      <div class="career-banner-icon"><i class="fas fa-road"></i></div>
+      <div>
+        <h5 class="mb-1">AI Career Recommendations</h5>
+        <p class="mb-0 text-muted">Get personalized career path, skill, and course recommendations based on your profile</p>
+      </div>
+    </div>
+    <form method="POST" action="{% url 'career:generate' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-brain me-2"></i>Generate Recommendations
+      </button>
+    </form>
+  </div>
+
+  {% if latest_recommendation %}
+  <div class="row g-4">
+    <!-- Career Paths -->
+    <div class="col-12">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-route me-2 text-success"></i>Recommended Career Paths</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            {% for path in latest_recommendation.career_paths %}
+            <div class="col-md-6 col-lg-4">
+              <div class="career-path-card">
+                <div class="cp-header">
+                  <div class="cp-title">{{ path.title }}</div>
+                  <span class="cp-growth badge bg-success-subtle text-success">{{ path.growth }} Growth</span>
+                </div>
+                <p class="cp-desc text-muted small">{{ path.description }}</p>
+                <div class="cp-salary"><i class="fas fa-dollar-sign text-success me-1"></i>{{ path.avg_salary }}</div>
+                <div class="cp-skills mt-2">
+                  {% for skill in path.required_skills %}
+                  <span class="skill-tag small">{{ skill }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <!-- Recommended Skills -->
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-graduation-cap me-2 text-primary"></i>Skills to Learn</h6>
+        </div>
+        <div class="card-body">
+          <div class="skill-cloud">
+            {% for skill in latest_recommendation.recommended_skills %}
+            <span class="skill-tag skill-recommended">{{ skill }}</span>
+            {% endfor %}
+          </div>
+          <a href="{% url 'assessment:skills' %}" class="btn btn-outline-primary btn-sm mt-3">
+            <i class="fas fa-plus me-1"></i>Add to My Skills
+          </a>
+        </div>
+      </div>
+
+      <!-- Certifications -->
+      {% if latest_recommendation.certifications %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-certificate me-2 text-warning"></i>Recommended Certifications</h6></div>
+        <div class="card-body p-0">
+          {% for cert in latest_recommendation.certifications %}
+          <div class="cert-item">
+            <div class="cert-icon"><i class="fas fa-award text-warning"></i></div>
+            <div class="cert-info">
+              <div class="cert-name">{{ cert.name }}</div>
+              <div class="cert-meta text-muted small">{{ cert.provider }} • {{ cert.level }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-6">
+      <!-- Courses -->
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-play-circle me-2 text-info"></i>Recommended Courses</h6></div>
+        <div class="card-body p-0">
+          {% for course in latest_recommendation.recommended_courses %}
+          <div class="course-item">
+            <div class="course-info">
+              <div class="course-title">{{ course.title }}</div>
+              <div class="course-meta text-muted small">{{ course.platform }} • {{ course.duration }} • {{ course.level }}</div>
+            </div>
+            <span class="badge {% if course.type == 'Free' %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">{{ course.type }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Job Titles -->
+      {% if latest_recommendation.job_titles %}
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-briefcase me-2 text-success"></i>Matching Job Titles</h6></div>
+        <div class="card-body">
+          <div class="skill-cloud">
+            {% for title in latest_recommendation.job_titles %}
+            <span class="skill-tag skill-job">{{ title }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Target Companies -->
+      {% if latest_recommendation.target_companies %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-building me-2 text-primary"></i>Top Hiring Companies</h6></div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush rounded-bottom">
+            {% for company in latest_recommendation.target_companies %}
+            <a href="{{ company.url }}" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="fas fa-building text-secondary"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-semibold">{{ company.name }}</h6>
+                  <small class="text-muted">View Open Roles</small>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right text-muted small"></i>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if latest_recommendation.ai_summary %}
+    <div class="col-12">
+      <div class="card dash-card border-success">
+        <div class="card-body">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="text-success fs-3"><i class="fas fa-robot"></i></div>
+            <div>
+              <h6 class="mb-1">AI Career Advice</h6>
+              <p class="text-muted mb-0">{{ latest_recommendation.ai_summary }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state-large text-center py-5">
+    <i class="fas fa-road fa-4x text-muted mb-4"></i>
+    <h5 class="text-muted">No career recommendations yet</h5>
+    <p class="text-muted">Add your skills and generate AI-powered career recommendations.</p>
+    <a href="{% url 'assessment:skills' %}" class="btn btn-outline-success me-2">Add Skills First</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

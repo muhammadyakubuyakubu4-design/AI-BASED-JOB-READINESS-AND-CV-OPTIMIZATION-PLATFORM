@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ user.full_name }} - Resume</title>
+<style>
+  @page { margin: 0; size: letter; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 10pt; 
+    line-height: 1.5; 
+    color: #333; 
+    background: {% if is_pdf %}#fff{% else %}#525659{% endif %};
+    margin: 0;
+    padding: {% if is_pdf %}0{% else %}20px 0{% endif %};
+  }
+  
+  .resume-container {
+    width: 8.5in;
+    min-height: 11in;
+    background: #fff;
+    margin: 0 auto;
+    {% if not is_pdf %}
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    {% endif %}
+  }
+
+  /* Table Reset */
+  table { border-collapse: collapse; border-spacing: 0; border: 0; margin: 0; padding: 0; }
+  td { padding: 0; vertical-align: top; border: 0; }
+  
+  /* Sidebar styles */
+  .sidebar-container {
+    background-color: #eaedf1;
+  }
+  
+  .profile-pic-container {
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 30px;
+  }
+  
+  .profile-pic {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 6px solid #fff;
+  }
+  
+  .sidebar-section {
+    padding: 0 30px;
+    margin-bottom: 25px;
+  }
+  
+  .sidebar-title {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #243b55;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #a3b0bd;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  
+  .contact-item {
+    margin-bottom: 12px;
+    font-size: 9.5pt;
+    color: #4a5568;
+    text-align: left;
+  }
+  
+  .skill-list {
+    color: #4a5568;
+    margin-left: 15px;
+  }
+  
+  .skill-list li {
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+    text-align: left;
+  }
+  
+  /* Main Content */
+  .header {
+    background-color: #243b55;
+    color: #fff;
+    padding: 40px 40px 30px 40px;
+  }
+  
+  .name {
+    font-size: 26pt;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  
+  .job-title {
+    font-size: 10.5pt;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #cbd5e1;
+  }
+  
+  .content-body {
+    padding: 30px 40px;
+  }
+  
+  .section {
+    margin-bottom: 25px;
+  }
+  
+  .section-title {
+    font-size: 15pt;
+    font-weight: bold;
+    color: #243b55;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #243b55;
+    padding-bottom: 8px;
+    text-align: left;
+  }
+  
+  .item {
+    margin-bottom: 18px;
+  }
+  
+  .item-title {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #243b55;
+  }
+  
+  .item-subtitle {
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #4a5568;
+  }
+  
+  .item-date {
+    font-size: 9pt;
+    font-weight: bold;
+    margin: 4px 0 8px 0;
+    text-transform: uppercase;
+    color: #1e293b;
+  }
+  
+  .item-desc {
+    color: #334155;
+    font-size: 9.5pt;
+  }
+  
+  .profile-text {
+    color: #334155;
+    font-size: 10pt;
+  }
+</style>
+</head>
+<body>
+  <div class="resume-container">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" height="100%" style="min-height:11in; border: 0;">
+      <tr>
+        <td class="sidebar-container" width="35%" style="background-color: #eaedf1;">
+          <div class="profile-pic-container">
+            {% if profile.profile_picture %}
+              <img src="{{ profile.profile_picture.url }}" class="profile-pic" alt="Profile">
+            {% else %}
+              <div style="font-size: 20pt; color: #555; padding-top: 50px;">NO PHOTO</div>
+            {% endif %}
+          </div>
+          
+          <div class="sidebar-section">
+            <div class="sidebar-title">Contact</div>
+            <div class="contact-item">
+              <strong>Phone:</strong><br>{{ profile.phone|default:"Not provided" }}
+            </div>
+            <div class="contact-item">
+              <strong>Email:</strong><br>{{ user.email }}
+            </div>
+            {% if profile.location %}
+            <div class="contact-item">
+              <strong>Location:</strong><br>{{ profile.location }}
+            </div>
+            {% endif %}
+          </div>
+          
+          {% if all_skills %}
+          <div class="sidebar-section">
+            <div class="sidebar-title">Skills</div>
+            <ul class="skill-list">
+              {% for skill in all_skills %}
+              <li>{{ skill }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          
+          {% if certifications %}
+          <div class="sidebar-section">
+            <div class="sidebar-title">Certifications</div>
+            <ul class="skill-list">
+              {% for cert in certifications %}
+              <li>{{ cert }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </td>
+        
+        <td width="65%">
+          <div class="header">
+            <div class="name">{{ user.full_name|upper }}</div>
+            <div class="job-title">{{ profile.target_role|default:"Professional" }}</div>
+          </div>
+          
+          <div class="content-body">
+            {% if sections.summary or profile.bio %}
+            <div class="section">
+              <div class="section-title">Profile</div>
+              <div class="profile-text">{{ sections.summary|default:profile.bio|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+            
+            {% if experience_items %}
+            <div class="section">
+              <div class="section-title">Work Experience</div>
+              {% for exp in experience_items %}
+              <div class="item">
+                <div class="item-title">{{ exp.title }}</div>
+                <div class="item-subtitle">{{ exp.company }}{% if exp.location %} - {{ exp.location }}{% endif %}</div>
+                <div class="item-date">{{ exp.dates|default:"CURRENTLY ONGOING" }}</div>
+                <div class="item-desc">
+                  {% if exp.description %}
+                    {{ exp.description|linebreaksbr }}
+                  {% endif %}
+                  {% if exp.bullets %}
+                    <ul class="skill-list" style="margin-top:5px;">
+                      {% for bullet in exp.bullets %}
+                      <li>{{ bullet }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if sections.education or profile.education_level %}
+            <div class="section">
+              <div class="section-title">Education</div>
+              {% if profile.education_level %}
+              <div class="item">
+                <div class="item-title">{{ profile.get_education_level_display }}{% if profile.field_of_study %} in {{ profile.field_of_study }}{% endif %}</div>
+                {% if profile.institution %}<div class="item-subtitle">{{ profile.institution }}{% if profile.graduation_year %} - {{ profile.graduation_year }}{% endif %}</div>{% endif %}
+              </div>
+              {% elif sections.education %}
+              <div class="item">
+                <div class="item-desc">{{ sections.education|linebreaksbr }}</div>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

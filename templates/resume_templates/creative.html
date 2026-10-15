@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ user.full_name }} — Creative Resume</title>
+<style>
+  @page { margin: 0; size: letter; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Poppins', 'Segoe UI', sans-serif; font-size: 10pt; line-height: 1.5; color: #2d2d2d; background: #f8f9fa; }
+
+  .resume-page { max-width: 8.5in; margin: 0 auto; background: #fff; display: flex; min-height: 11in; }
+
+  .sidebar { width: 240px; background: #1a1a2e; color: #e0e0e0; padding: 32px 20px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .main-area { flex: 1; padding: 32px 28px; }
+
+  .avatar-box { text-align: center; margin-bottom: 20px; }
+  .avatar-initial { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #e94560, #0f3460); color: #fff; font-size: 28pt; font-weight: 700; line-height: 80px; text-align: center; margin: 0 auto 10px; }
+  .sidebar h1 { font-size: 16pt; font-weight: 700; color: #fff; text-align: center; margin-bottom: 2px; }
+  .sidebar .role { font-size: 9pt; color: #e94560; text-align: center; font-weight: 500; margin-bottom: 20px; }
+
+  .s-side-title { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 2px; color: #e94560; font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+
+  .s-side-section { margin-bottom: 18px; }
+  .side-contact-item { font-size: 8.5pt; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; color: #ccc; word-break: break-all; }
+  .side-contact-item i { width: 16px; color: #e94560; }
+
+  .side-skill-items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .side-skill-tag { background: rgba(233,69,96,0.15); color: #e94560; padding: 2px 8px; border-radius: 3px; font-size: 8pt; font-weight: 500; }
+
+  .main-section { margin-bottom: 18px; }
+  .main-section-title { font-size: 11pt; font-weight: 700; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .main-section-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, #e94560, transparent); }
+
+  .summary-text { font-size: 9.5pt; color: #444; line-height: 1.7; }
+
+  .exp-item { margin-bottom: 10px; }
+  .exp-item .exp-title { font-weight: 600; font-size: 10pt; color: #1a1a2e; }
+  .exp-item .exp-meta { font-size: 8.5pt; color: #e94560; font-weight: 500; }
+  .exp-item .exp-desc { font-size: 9pt; color: #555; margin-top: 2px; }
+
+  .edu-item { margin-bottom: 6px; }
+  .edu-item .edu-title { font-weight: 600; font-size: 9.5pt; }
+  .edu-item .edu-meta { font-size: 8.5pt; color: #666; }
+
+  @media print {
+    body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sidebar { background: #1a1a2e !important; -webkit-print-color-adjust: exact; }
+    .avatar-initial { background: linear-gradient(135deg, #e94560, #0f3460) !important; -webkit-print-color-adjust: exact; }
+    .main-section-title::after { background: linear-gradient(90deg, #e94560, transparent) !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="resume-page">
+  <div class="sidebar">
+    <div class="avatar-box">
+      <div class="avatar-initial">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+    </div>
+    <h1>{{ user.first_name }} {{ user.last_name }}</h1>
+    <div class="role">{{ profile.current_role|default:"Job Seeker" }}</div>
+
+    <div class="s-side-section">
+      <div class="s-side-title">Contact</div>
+      <div class="side-contact-item">✉ {{ user.email }}</div>
+      {% if profile.phone %}<div class="side-contact-item">📞 {{ profile.phone }}</div>{% endif %}
+      {% if profile.location %}<div class="side-contact-item">📍 {{ profile.location }}</div>{% endif %}
+      {% if profile.linkedin_url %}<div class="side-contact-item">🔗 <a href="{{ profile.linkedin_url }}" style="color:#e94560;text-decoration:none;">LinkedIn</a></div>{% endif %}
+      {% if profile.github_url %}<div class="side-contact-item">💻 <a href="{{ profile.github_url }}" style="color:#e94560;text-decoration:none;">GitHub</a></div>{% endif %}
+      {% if profile.portfolio_url %}<div class="side-contact-item">🌐 <a href="{{ profile.portfolio_url }}" style="color:#e94560;text-decoration:none;">Portfolio</a></div>{% endif %}
+    </div>
+
+    {% if all_skills %}
+    <div class="s-side-section">
+      <div class="s-side-title">Skills</div>
+      <div class="side-skill-items">
+        {% for skill in all_skills %}
+        <span class="side-skill-tag">{{ skill }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if certifications %}
+    <div class="s-side-section">
+      <div class="s-side-title">Certifications</div>
+      <div class="side-skill-items">
+        {% for cert in certifications %}
+        <span class="side-skill-tag">{{ cert }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if analysis %}
+    <div class="s-side-section" style="margin-top:auto;">
+      <div class="s-side-title">Resume Strength</div>
+      <div style="text-align:center;padding:4px 0;">
+        <div style="font-size:32pt;font-weight:700;color:#e94560;">{{ analysis.overall_score|floatformat:0 }}</div>
+        <div style="font-size:8pt;color:#999;">/ 100</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% for section in extra_sections %}
+    <div class="s-side-section">
+      <div class="s-side-title">{{ section.name }}</div>
+      <div class="summary-text" style="font-size:8.5pt;color:#ccc;">{{ section.content|linebreaksbr }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="main-area">
+    {% if profile.bio or sections.summary %}
+    <div class="main-section">
+      <div class="main-section-title">About</div>
+      <div class="summary-text">{{ profile.bio|default:sections.summary }}</div>
+    </div>
+    {% endif %}
+
+    {% if experience_items or sections.experience %}
+    <div class="main-section">
+      <div class="main-section-title">Experience</div>
+      {% if experience_items|length == 1 and not experience_items.0.company and not experience_items.0.dates and not experience_items.0.description %}
+      <div class="summary-text">{{ experience_items.0.title|linebreaksbr }}</div>
+      {% else %}
+      {% for item in experience_items %}
+      <div class="exp-item">
+        <div class="exp-title">{{ item.title }}</div>
+        {% if item.company or item.dates %}<div class="exp-meta">{{ item.company }}{% if item.company and item.dates %} — {{ item.dates }}{% elif item.dates %}{{ item.dates }}{% endif %}</div>{% endif %}
+        {% if item.description %}<div class="exp-desc">{{ item.description|linebreaksbr }}</div>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if profile.education_level or sections.education %}
+    <div class="main-section">
+      <div class="main-section-title">Education</div>
+      {% if profile.education_level %}
+      <div class="edu-item">
+        <div class="edu-title">{{ profile.get_education_level_display }}{% if profile.field_of_study %} in {{ profile.field_of_study }}{% endif %}</div>
+        {% if profile.institution %}<div class="edu-meta">{{ profile.institution }}{% if profile.graduation_year %} · {{ profile.graduation_year }}{% endif %}</div>{% endif %}
+      </div>
+      {% endif %}
+      {% if sections.education %}
+      <div class="summary-text" style="margin-top:4px;">{{ sections.education|linebreaksbr }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if profile.target_role %}
+    <div class="main-section">
+      <div class="main-section-title">Objective</div>
+      <div class="summary-text">Seeking a {{ profile.target_role }} position to apply my expertise and drive meaningful results.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

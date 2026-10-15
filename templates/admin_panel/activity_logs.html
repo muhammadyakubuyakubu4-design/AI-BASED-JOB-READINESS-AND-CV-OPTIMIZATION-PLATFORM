@@ -1,0 +1,104 @@
+{% extends 'admin_panel/base_admin.html' %}
+{% load static %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-bold mb-0">Activity Logs</h5>
+  <div>
+    <span class="text-muted small me-3">{{ total_count }} entries</span>
+    <a href="{% url 'admin_panel:export_activity_logs' %}" class="btn btn-sm btn-outline-success rounded-pill"><i class="fas fa-download me-1"></i>Export CSV</a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">Action Type</label>
+        <select name="action" class="form-select form-select-sm">
+          <option value="">All</option>
+          {% for code, label in action_types %}
+            <option value="{{ code }}" {% if action_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label small">Search</label>
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="User email, description..." value="{{ q }}">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill"><i class="fas fa-search me-1"></i>Filter</button>
+      </div>
+      <div class="col-md-2">
+        <a href="{% url 'admin_panel:activity_logs' %}" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-4">User</th>
+          <th>Action</th>
+          <th>Description</th>
+          <th>Model</th>
+          <th>IP</th>
+          <th class="pe-4 text-end">Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="ps-4">
+            {% if log.user %}
+              <a href="{% url 'admin_panel:user_detail' log.user.pk %}" class="text-decoration-none">{{ log.user.email }}</a>
+            {% else %}
+              <span class="text-muted">Anonymous</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge rounded-pill
+              {% if log.action_type == 'create' %}bg-success
+              {% elif log.action_type == 'update' %}bg-info
+              {% elif log.action_type == 'delete' %}bg-danger
+              {% elif log.action_type == 'login' %}bg-primary
+              {% elif log.action_type == 'logout' %}bg-secondary
+              {% elif log.action_type == 'upload' %}bg-warning text-dark
+              {% else %}bg-light text-dark{% endif %}">
+              {{ log.get_action_type_display }}
+            </span>
+          </td>
+          <td class="small">{{ log.description|truncatechars:80 }}</td>
+          <td class="small text-muted">{{ log.model_name|default:'—' }}</td>
+          <td class="small text-muted">{{ log.ip_address|default:'—' }}</td>
+          <td class="pe-4 text-end small text-muted">{{ log.created_at|date:'Y-m-d H:i' }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center py-5 text-muted">No activity logs found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if logs.has_other_pages %}
+<nav class="mt-4">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% if logs.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page=1{% if action_filter %}&action={{ action_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">&laquo; First</a></li>
+      <li class="page-item"><a class="page-link" href="?page={{ logs.previous_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">Previous</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ logs.number }} of {{ logs.paginator.num_pages }}</span></li>
+    {% if logs.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ logs.next_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">Next</a></li>
+      <li class="page-item"><a class="page-link" href="?page={{ logs.paginator.num_pages }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if q %}&q={{ q }}{% endif %}">Last &raquo;</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

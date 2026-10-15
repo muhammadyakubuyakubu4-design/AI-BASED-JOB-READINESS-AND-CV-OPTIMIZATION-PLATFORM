@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}Optimize CV Bullets — CareerAI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .bullet-card { border-radius: 10px; border: 1px solid var(--bs-border-color); transition: border-color .2s; }
+  .bullet-card.accepted { border-color: var(--bs-success); background: rgba(25,135,84,.04); }
+  .bullet-card.rejected { opacity: .5; }
+  .bullet-before { color: var(--bs-danger); font-size: .88rem; line-height: 1.5; }
+  .bullet-after { color: var(--bs-success); font-size: .88rem; line-height: 1.5; font-weight: 500; }
+  .kw-badge { font-size: .72rem; }
+  .diff-arrow { color: var(--bs-secondary-color); font-size: 1.2rem; }
+  .action-bar { position: sticky; bottom: 0; background: var(--bs-body-bg); border-top: 1px solid var(--bs-border-color); padding: 1rem 0; z-index: 10; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center mb-4 gap-2 flex-wrap">
+    <a href="{% url 'job_matching:result' job_match.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to Result
+    </a>
+    <div>
+      <h5 class="mb-0"><i class="fas fa-magic text-success me-2"></i>One-Click CV Bullet Optimizer</h5>
+      <p class="text-muted small mb-0">
+        Optimizing for: <strong>{{ job_match.job_description.title }}</strong>
+        {% if job_match.job_description.company %} at <strong>{{ job_match.job_description.company }}</strong>{% endif %}
+        · <strong>{{ job_match.missing_keywords|length }}</strong> missing keywords
+      </p>
+    </div>
+  </div>
+
+  {% if not optimization %}
+  <!-- Pre-run state -->
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card dash-card text-center p-4">
+        <div class="mb-3">
+          <span style="font-size:3rem">✨</span>
+        </div>
+        <h5>AI Bullet Point Optimizer</h5>
+        <p class="text-muted">
+          CareerAI will rewrite your CV bullet points to naturally incorporate the
+          <strong>{{ job_match.missing_keywords|length }} missing keywords</strong> from this job description,
+          using stronger action verbs and quantifiable impact.
+        </p>
+        {% if job_match.missing_keywords %}
+        <div class="mb-3">
+          <small class="text-muted d-block mb-2">Keywords to weave in:</small>
+          <div class="d-flex flex-wrap gap-1 justify-content-center">
+            {% for kw in job_match.missing_keywords|slice:":15" %}
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{{ kw }}</span>
+            {% endfor %}
+            {% if job_match.missing_keywords|length > 15 %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary">+{{ job_match.missing_keywords|length|add:"-15" }} more</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        <form method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success btn-lg px-5">
+            <i class="fas fa-magic me-2"></i>Optimize My Bullets
+          </button>
+        </form>
+        <p class="text-muted small mt-3">You'll be able to review and accept/reject each suggestion before downloading.</p>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Results -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="alert alert-success d-flex align-items-center gap-2">
+        <i class="fas fa-check-circle fa-lg"></i>
+        <div>
+          <strong>Optimization complete!</strong> {{ optimization.summary }}
+        </div>
+        <div class="ms-auto d-flex gap-2">
+          <span class="badge bg-success">{{ optimization.keywords_added }} keywords added</span>
+          <span class="badge bg-primary">{{ optimization.bullets|length }} bullets</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bulletList">
+    {% for bullet in optimization.bullets %}
+    <div class="card bullet-card mb-3 p-3" id="bullet-{{ forloop.counter0 }}" data-index="{{ forloop.counter0 }}">
+      <div class="row g-3 align-items-start">
+        <!-- Before -->
+        <div class="col-md-5">
+          <div class="text-muted small fw-semibold mb-1"><i class="fas fa-times-circle text-danger me-1"></i>Original</div>
+          <div class="bullet-before">{{ bullet.original }}</div>
+        </div>
+        <!-- Arrow -->
+        <div class="col-md-1 text-center d-none d-md-block pt-4">
+          <i class="fas fa-arrow-right diff-arrow"></i>
+        </div>
+        <!-- After -->
+        <div class="col-md-6">
+          <div class="text-muted small fw-semibold mb-1"><i class="fas fa-check-circle text-success me-1"></i>Optimized</div>
+          <div class="bullet-after">{{ bullet.optimized }}</div>
+          {% if bullet.keywords_added %}
+          <div class="mt-2 d-flex flex-wrap gap-1">
+            {% for kw in bullet.keywords_added %}
+            <span class="badge bg-success bg-opacity-15 text-success border border-success-subtle kw-badge">+{{ kw }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if bullet.change_reason %}
+          <div class="text-muted mt-1" style="font-size:.76rem"><i class="fas fa-info-circle me-1"></i>{{ bullet.change_reason }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <!-- Accept/Reject -->
+      <div class="d-flex gap-2 mt-3 pt-2 border-top">
+        <button type="button" class="btn btn-sm btn-outline-success accept-btn" data-index="{{ forloop.counter0 }}">
+          <i class="fas fa-check me-1"></i>Accept
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary reject-btn" data-index="{{ forloop.counter0 }}">
+          <i class="fas fa-times me-1"></i>Skip
+        </button>
+        <span class="ms-auto badge bg-light text-dark align-self-center status-badge" id="status-{{ forloop.counter0 }}">Pending</span>
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-warning">No bullet points were found in your CV to optimize.</div>
+    {% endfor %}
+  </div>
+
+  <!-- Sticky action bar -->
+  <div class="action-bar">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-muted small">
+          <span id="acceptedCount">0</span> accepted · <span id="totalCount">{{ optimization.bullets|length }}</span> total
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="acceptAllBtn">Accept All</button>
+        <button type="button" class="btn btn-success ms-auto" id="downloadBtn" onclick="downloadOptimized()">
+          <i class="fas fa-download me-1"></i>Download Optimized CV Text
+        </button>
+        <form method="POST" class="ms-2">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-primary btn-sm">Re-run Optimizer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if optimization %}
+const bullets = {{ optimization.bullets|safe }};
+const accepted = new Array(bullets.length).fill(false);
+
+function refreshUI() {
+  document.getElementById('acceptedCount').textContent = accepted.filter(Boolean).length;
+}
+
+document.querySelectorAll('.accept-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.index);
+    accepted[i] = true;
+    document.getElementById(`bullet-${i}`).classList.add('accepted');
+    document.getElementById(`bullet-${i}`).classList.remove('rejected');
+    document.getElementById(`status-${i}`).textContent = '✓ Accepted';
+    document.getElementById(`status-${i}`).className = 'ms-auto badge bg-success align-self-center status-badge';
+    refreshUI();
+  });
+});
+
+document.querySelectorAll('.reject-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.index);
+    accepted[i] = false;
+    document.getElementById(`bullet-${i}`).classList.add('rejected');
+    document.getElementById(`bullet-${i}`).classList.remove('accepted');
+    document.getElementById(`status-${i}`).textContent = 'Skipped';
+    document.getElementById(`status-${i}`).className = 'ms-auto badge bg-secondary align-self-center status-badge';
+    refreshUI();
+  });
+});
+
+document.getElementById('acceptAllBtn')?.addEventListener('click', () => {
+  accepted.fill(true);
+  bullets.forEach((_, i) => {
+    document.getElementById(`bullet-${i}`).classList.add('accepted');
+    document.getElementById(`bullet-${i}`).classList.remove('rejected');
+    document.getElementById(`status-${i}`).textContent = '✓ Accepted';
+    document.getElementById(`status-${i}`).className = 'ms-auto badge bg-success align-self-center status-badge';
+  });
+  refreshUI();
+});
+
+function downloadOptimized() {
+  const lines = bullets.map((b, i) => accepted[i] ? b.optimized : b.original);
+  const text = lines.join('\n• ');
+  const blob = new Blob(['• ' + text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'optimized_bullets.txt';
+  a.click();
+}
+{% endif %}
+</script>
+{% endblock %}

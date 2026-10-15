@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-1">Resume Templates</h5>
+      <p class="text-muted small mb-0">Select a CV and template style to generate a polished resume. Download as PDF or print directly.</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-md-6">
+      <label class="form-label fw-medium">Select CV</label>
+      <select class="form-select" id="cvSelect" onchange="onCvChange()">
+        <option value="">— Choose a CV —</option>
+        {% for cv in cvs %}
+        <option value="{{ cv.pk }}" {% if selected_cv and selected_cv.pk == cv.pk %}selected{% endif %}>
+          {{ cv.original_filename }} ({{ cv.uploaded_at|date:'M d, Y' }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label fw-medium">Template Style</label>
+      <select class="form-select" id="templateSelect" onchange="onTemplateChange()">
+        <option value="modern" {% if template == 'modern' %}selected{% endif %}>Modern — Clean & Minimal</option>
+        <option value="professional" {% if template == 'professional' %}selected{% endif %}>Professional — Classic Layout</option>
+        <option value="creative" {% if template == 'creative' %}selected{% endif %}>Creative — Bold Design</option>
+        <option value="elegant" {% if template == 'elegant' %}selected{% endif %}>Elegant — Two Column Design</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <a id="downloadPdfBtn" class="btn btn-success rounded-pill" {% if selected_cv %}href="{% url 'cv_analyzer:resume_download_pdf' selected_cv.pk template %}"{% else %}disabled{% endif %}>
+        <i class="fas fa-download me-1"></i> Download PDF
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    {% for tpl, label, desc, icon in templates_info %}
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 template-card {% if template == tpl %}border-primary border-2 selected-card{% endif %}" data-template="{{ tpl }}" onclick="onCardSelect('{{ tpl }}')" style="cursor:pointer;">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="text-center mb-3">
+            <i class="{{ icon }} fa-3x text-primary"></i>
+          </div>
+          <h6 class="fw-bold text-center">{{ label }}</h6>
+          <p class="small text-muted text-center flex-grow-1">{{ desc }}</p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary rounded-pill btn-sm select-btn" onclick="event.stopPropagation();onCardSelect('{{ tpl }}')">
+              <i class="fas fa-check me-1"></i> Select
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 mt-4">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0"><i class="fas fa-file-alt me-2"></i>Preview</h6>
+        <div class="d-flex gap-2">
+          <a id="openTabBtn" class="btn btn-sm btn-outline-secondary rounded-pill" {% if selected_cv %}href="{% url 'cv_analyzer:resume_preview' selected_cv.pk template %}" target="_blank"{% else %}disabled{% endif %}>
+            <i class="fas fa-external-link-alt me-1"></i> Open in Tab
+          </a>
+        </div>
+      </div>
+      <div id="previewArea" class="border rounded-3 d-flex align-items-center justify-content-center" style="height:600px;overflow:auto;background:#f0f0f0;">
+        {% if selected_cv %}
+        <iframe id="previewFrame" src="{% url 'cv_analyzer:resume_preview' selected_cv.pk template %}" style="width:8.5in;min-height:11in;border:none;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.15);transform:scale(0.6);transform-origin:top left;" title="Resume Preview"></iframe>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-file-alt fa-4x mb-3 d-block"></i>
+          <h6>Select a CV to preview your resume</h6>
+          <p class="small mb-0">You need at least one analyzed CV to generate a resume.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _cvPk = '{{ selected_cv.pk|default:"" }}';
+let _tpl = '{{ template|default:"modern" }}';
+
+function onCvChange() {
+  _cvPk = document.getElementById('cvSelect').value;
+  reloadPreview();
+}
+
+function onTemplateChange() {
+  _tpl = document.getElementById('templateSelect').value;
+  updateCardSelection(_tpl);
+  reloadPreview();
+}
+
+function onCardSelect(tpl) {
+  _tpl = tpl;
+  document.getElementById('templateSelect').value = tpl;
+  updateCardSelection(tpl);
+  reloadPreview();
+}
+
+function updateCardSelection(tpl) {
+  document.querySelectorAll('.template-card').forEach(function(card) {
+    if (card.dataset.template === tpl) {
+      card.classList.add('border-primary', 'border-2', 'selected-card');
+    } else {
+      card.classList.remove('border-primary', 'border-2', 'selected-card');
+    }
+  });
+}
+
+function reloadPreview() {
+  const area = document.getElementById('previewArea');
+  const btn = document.getElementById('downloadPdfBtn');
+  const tabBtn = document.getElementById('openTabBtn');
+
+  if (!_cvPk) {
+    area.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-file-alt fa-4x mb-3 d-block"></i><h6>Select a CV to preview your resume</h6><p class="small mb-0">You need at least one analyzed CV to generate a resume.</p></div>';
+    btn.classList.add('disabled');
+    btn.removeAttribute('href');
+    tabBtn.classList.add('disabled');
+    tabBtn.removeAttribute('href');
+    return;
+  }
+
+  const previewUrl = '{% url "cv_analyzer:resume_preview" 0 "modern" %}'.replace('/0/', '/' + _cvPk + '/').replace('/modern/', '/' + _tpl + '/');
+  const pdfUrl = '{% url "cv_analyzer:resume_download_pdf" 0 "modern" %}'.replace('/0/', '/' + _cvPk + '/').replace('/modern/', '/' + _tpl + '/');
+
+  area.innerHTML = '<iframe id="previewFrame" src="' + previewUrl + '" style="width:8.5in;min-height:11in;border:none;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.15);transform:scale(0.6);transform-origin:top left;" title="Resume Preview"></iframe>';
+
+  btn.classList.remove('disabled');
+  btn.href = pdfUrl;
+  tabBtn.classList.remove('disabled');
+  tabBtn.href = previewUrl;
+}
+</script>
+{% endblock %}

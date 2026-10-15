@@ -1,0 +1,141 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Analytics — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-chart-line me-2 text-success"></i>Monthly User Registrations</span>
+      </div>
+      <div class="ap-chart-body" style="height:260px">
+        <canvas id="monthlyUsersChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-chart-bar me-2 text-primary"></i>Assessment Score Averages</span>
+      </div>
+      <div class="ap-chart-body">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Readiness Score</small>
+            <small class="fw-bold">{{ score_avgs.avg_readiness|floatformat:1 }}</small>
+          </div>
+          <div class="ap-progress"><div class="ap-progress-bar" style="width:{{ score_avgs.avg_readiness }}%"></div></div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Technical Score</small>
+            <small class="fw-bold">{{ score_avgs.avg_technical|floatformat:1 }}</small>
+          </div>
+          <div class="ap-progress"><div class="ap-progress-bar" style="width:{{ score_avgs.avg_technical }}%;background:#0d6efd"></div></div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Soft Skills</small>
+            <small class="fw-bold">{{ score_avgs.avg_soft|floatformat:1 }}</small>
+          </div>
+          <div class="ap-progress"><div class="ap-progress-bar" style="width:{{ score_avgs.avg_soft }}%;background:#fd7e14"></div></div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Experience</small>
+            <small class="fw-bold">{{ score_avgs.avg_experience|floatformat:1 }}</small>
+          </div>
+          <div class="ap-progress"><div class="ap-progress-bar" style="width:{{ score_avgs.avg_experience }}%;background:#6f42c1"></div></div>
+        </div>
+        <div>
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Education</small>
+            <small class="fw-bold">{{ score_avgs.avg_education|floatformat:1 }}</small>
+          </div>
+          <div class="ap-progress"><div class="ap-progress-bar" style="width:{{ score_avgs.avg_education }}%;background:#20c997"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-chart-bar me-2 text-warning"></i>CV Score Distribution</span>
+      </div>
+      <div class="ap-chart-body" style="height:240px">
+        <canvas id="cvScoreDistChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-chart-bar me-2 text-info"></i>Job Match Score Distribution</span>
+      </div>
+      <div class="ap-chart-body" style="height:240px">
+        <canvas id="matchScoreDistChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-4">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-layer-group me-2 text-primary"></i>Skill Categories</span>
+      </div>
+      <div class="ap-chart-body" style="height:240px">
+        <canvas id="skillCatChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-star me-2 text-warning"></i>Top Job Titles</span>
+      </div>
+      <div class="ap-chart-body" style="height:240px">
+        <canvas id="topJobsChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="ap-chart-card">
+      <div class="ap-chart-header">
+        <span class="ap-chart-title"><i class="fas fa-chart-line me-2 text-success"></i>Daily Activity (14 Days)</span>
+      </div>
+      <div class="ap-chart-body" style="height:240px">
+        <canvas id="dailyActivityChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const monthlyLabels = {{ monthly_labels|safe }};
+const monthlyData = {{ monthly_data|safe }};
+const scoreBuckets = {{ score_buckets|safe }};
+const matchBuckets = {{ match_buckets|safe }};
+const topJobs = {{ top_jobs|safe }};
+const skillCats = {{ skill_categories|safe }};
+const dailyLabels = {{ daily_labels|safe }};
+const dailyCvs = {{ daily_cvs|safe }};
+const dailyMatches = {{ daily_matches|safe }};
+const dailyAssessments = {{ daily_assessments|safe }};
+
+apLineChart('monthlyUsersChart', monthlyLabels, [
+  { label: 'New Users', data: monthlyData, borderColor: '#1a8f5c', backgroundColor: 'rgba(26,143,92,.15)', tension: .4, fill: true, pointRadius: 4 }
+]);
+apBarChart('cvScoreDistChart', scoreBuckets.map(s => s.range), scoreBuckets.map(s => s.count), '#1a8f5c');
+apBarChart('matchScoreDistChart', matchBuckets.map(s => s.range), matchBuckets.map(s => s.count), '#0d6efd');
+apDoughnutChart('skillCatChart', Object.keys(skillCats), Object.values(skillCats), ['#1a8f5c','#0d6efd','#fd7e14','#6f42c1','#20c997','#dc3545']);
+apBarChart('topJobsChart', topJobs.map(j => j.title), topJobs.map(j => j.count), '#fd7e14');
+apLineChart('dailyActivityChart', dailyLabels, [
+  { label: 'CVs', data: dailyCvs, borderColor: '#1a8f5c', backgroundColor: 'rgba(26,143,92,.1)', tension: .4, fill: true, pointRadius: 2 },
+  { label: 'Matches', data: dailyMatches, borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,.08)', tension: .4, fill: true, pointRadius: 2 },
+  { label: 'Assessments', data: dailyAssessments, borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,.08)', tension: .4, fill: true, pointRadius: 2 }
+]);
+</script>
+{% endblock %}

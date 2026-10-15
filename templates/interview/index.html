@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Interview Preparation — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-comments me-2 text-success"></i>Generate Interview Questions</h6>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-medium">Job Title <span class="text-danger">*</span></label>
+              {{ form.job_title }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Company Name</label>
+              {{ form.company_name }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Industry</label>
+              {{ form.industry }}
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Difficulty Level</label>
+              {{ form.difficulty }}
+            </div>
+            <button type="submit" class="btn btn-success w-100 btn-lg">
+              <i class="fas fa-brain me-2"></i>Generate Questions
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Interview Tips</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><div class="interview-tip-card"><div class="itc-icon"><i class="fas fa-search text-primary"></i></div><div class="itc-text">Research the company before your interview</div></div></div>
+            <div class="col-md-6"><div class="interview-tip-card"><div class="itc-icon"><i class="fas fa-star text-warning"></i></div><div class="itc-text">Prepare STAR-method behavioral examples</div></div></div>
+            <div class="col-md-6"><div class="interview-tip-card"><div class="itc-icon"><i class="fas fa-clock text-success"></i></div><div class="itc-text">Arrive 10-15 minutes early</div></div></div>
+            <div class="col-md-6"><div class="interview-tip-card"><div class="itc-icon"><i class="fas fa-question-circle text-info"></i></div><div class="itc-text">Prepare questions to ask the interviewer</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      {% if recent_sessions %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Sessions</h6>
+          <a href="{% url 'interview_prep:history' %}" class="btn btn-xs btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body p-0">
+          {% for session in recent_sessions %}
+          <a href="{% url 'interview_prep:session' session.pk %}" class="session-list-item">
+            <div class="session-info">
+              <div class="session-title">{{ session.job_title }}</div>
+              <div class="session-meta text-muted small">
+                <span class="badge bg-secondary-subtle text-secondary me-2">{{ session.get_difficulty_display }}</span>
+                {{ session.total_questions }} questions • {{ session.created_at|date:"M d" }}
+              </div>
+            </div>
+            <i class="fas fa-chevron-right text-muted"></i>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

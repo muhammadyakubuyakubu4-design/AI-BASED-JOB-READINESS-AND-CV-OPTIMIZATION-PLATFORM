@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Django
+staticfiles/
+*.db
+*.sqlite3
+
+# Media
+media/cv_uploads/
+media/avatars/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+start.bat
+
+# Temporary files
+~$*
+test_pdf.pdf
+
+media/

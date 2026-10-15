@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz.title }} — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-clipboard-list text-primary me-2"></i>{{ quiz.title }}</h5>
+      <p class="text-muted mb-0 small">{{ plan.skill_name }} • {{ quiz.total_questions }} questions • Pass with 60%</p>
+    </div>
+    <a href="{% url 'learning:plan' plan.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to Plan</a>
+  </div>
+
+  <form method="POST" action="{% url 'learning:quiz_submit' plan.pk %}" id="quizForm">
+    {% csrf_token %}
+    <div class="row g-4">
+      <div class="col-lg-8">
+        {% for q in quiz.questions %}
+        <div class="card dash-card mb-4">
+          <div class="card-header dash-card-header">
+            <span class="badge bg-primary-subtle text-primary">Question {{ forloop.counter }}</span>
+          </div>
+          <div class="card-body">
+            <div class="fw-semibold mb-3">{{ q.question }}</div>
+            {% for option in q.options %}
+            <div class="form-check quiz-option">
+              <input class="form-check-input" type="radio" name="q{{ forloop.parentloop.counter }}" id="q{{ forloop.parentloop.counter }}o{{ forloop.counter }}" value="{{ forloop.counter }}" required>
+              <label class="form-check-label" for="q{{ forloop.parentloop.counter }}o{{ forloop.counter }}">{{ option }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card dash-card sticky-top" style="top:90px">
+          <div class="card-body">
+            <div class="fw-semibold mb-3 text-center">Ready to submit?</div>
+            <p class="text-muted small text-center mb-3">You need at least 60% to pass and level up your skill.</p>
+            <button type="submit" class="btn btn-primary w-100 btn-lg"><i class="fas fa-paper-plane me-2"></i>Submit Answers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

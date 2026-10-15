@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Interview History — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="fas fa-history text-primary me-2"></i>Interview Sessions</h5>
+    <a href="{% url 'interview_prep:index' %}" class="btn btn-success btn-sm"><i class="fas fa-plus me-1"></i>New Session</a>
+  </div>
+  {% if sessions %}
+  <div class="row g-4">
+    {% for session in sessions %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card dash-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="session-icon bg-success-subtle"><i class="fas fa-comments text-success"></i></div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ session.job_title }}</div>
+              <div class="text-muted small">{{ session.company_name|default:"" }}</div>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ session.get_difficulty_display }}</span>
+          </div>
+          <div class="d-flex gap-3 mb-3 text-muted small">
+            <span><i class="fas fa-question-circle me-1"></i>{{ session.total_questions }} questions</span>
+            <span><i class="fas fa-calendar me-1"></i>{{ session.created_at|date:"M d, Y" }}</span>
+          </div>
+          <a href="{% url 'interview_prep:session' session.pk %}" class="btn btn-success btn-sm w-100">View Session</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state-large text-center py-5">
+    <i class="fas fa-comments fa-4x text-muted mb-4"></i>
+    <h5 class="text-muted">No interview sessions yet</h5>
+    <a href="{% url 'interview_prep:index' %}" class="btn btn-success mt-2"><i class="fas fa-plus me-2"></i>Create First Session</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

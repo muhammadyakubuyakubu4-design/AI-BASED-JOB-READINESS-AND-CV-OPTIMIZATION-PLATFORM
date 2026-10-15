@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Notifications — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="fas fa-bell text-primary me-2"></i>All Notifications</h5>
+    <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-check-double me-1"></i>Mark All Read
+    </a>
+  </div>
+
+  {% if notifications %}
+  <div class="card dash-card">
+    <div class="card-body p-0">
+      {% for notif in notifications %}
+      <div class="notification-item {% if not notif.is_read %}unread{% endif %}">
+        <div class="notif-icon-lg"><i class="fas {{ notif.icon_class }}"></i></div>
+        <div class="notif-body flex-grow-1">
+          <div class="notif-title fw-medium">{{ notif.title }}</div>
+          <div class="notif-message text-muted">{{ notif.message }}</div>
+          <div class="notif-time text-muted small mt-1">
+            <i class="fas fa-clock me-1"></i>{{ notif.created_at|timesince }} ago
+          </div>
+        </div>
+        <div class="notif-actions">
+          {% if not notif.is_read %}
+          <a href="{% url 'notifications:mark_read' notif.pk %}" class="btn btn-xs btn-outline-success">Mark Read</a>
+          {% else %}
+          <span class="text-muted small"><i class="fas fa-check-circle text-success me-1"></i>Read</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state-large text-center py-5">
+    <i class="fas fa-bell-slash fa-4x text-muted mb-4"></i>
+    <h5 class="text-muted">No notifications yet</h5>
+    <p class="text-muted">Your notifications will appear here after you use the platform.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

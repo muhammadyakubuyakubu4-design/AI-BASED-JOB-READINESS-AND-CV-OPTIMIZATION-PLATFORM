@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ user.full_name }} — Resume</title>
+<style>
+  @page { margin: 0.75in 0.75in; size: letter; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #222; background: #fff; padding: 0; margin: 0; }
+
+  .resume-page { max-width: 8.5in; margin: 0 auto; background: #fff; }
+  .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: #fff; padding: 32px 36px 28px; }
+  .header h1 { font-size: 26pt; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .header .subtitle { font-size: 12pt; opacity: 0.9; margin-bottom: 10px; }
+  .header .contact-row { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 9pt; opacity: 0.85; }
+  .header .contact-row span { display: inline-flex; align-items: center; gap: 4px; }
+
+  .body-content { padding: 28px 36px; display: flex; gap: 32px; }
+  .main-column { flex: 1; }
+  .side-column { width: 220px; flex-shrink: 0; }
+
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 11pt; font-weight: 700; color: #1a73e8; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #1a73e8; padding-bottom: 4px; margin-bottom: 10px; }
+
+  .skill-items { display: flex; flex-wrap: wrap; gap: 5px; }
+  .skill-tag { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-size: 8.5pt; font-weight: 500; }
+
+  .contact-item { display: flex; align-items: center; gap: 6px; font-size: 9pt; margin-bottom: 6px; color: #444; }
+  .contact-item i { width: 14px; color: #1a73e8; }
+
+  .summary-text { font-size: 9.5pt; color: #333; line-height: 1.6; }
+
+  .experience-item, .education-item { margin-bottom: 12px; }
+  .experience-item .title { font-weight: 600; font-size: 10.5pt; }
+  .experience-item .meta { font-size: 9pt; color: #666; margin-bottom: 3px; }
+  .experience-item .desc { font-size: 9pt; color: #444; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header { background: linear-gradient(135deg, #1a73e8, #0d47a1) !important; -webkit-print-color-adjust: exact; }
+    .skill-tag { background: #e8f0fe !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="resume-page">
+  <div class="header">
+    <h1>{{ user.full_name }}</h1>
+    <div class="subtitle">{{ profile.current_role|default:"Job Seeker" }}</div>
+    <div class="contact-row">
+      <span><i class="contact-icon">✉</i> {{ user.email }}</span>
+      {% if profile.phone %}<span><i class="contact-icon">📞</i> {{ profile.phone }}</span>{% endif %}
+      {% if profile.location %}<span><i class="contact-icon">📍</i> {{ profile.location }}</span>{% endif %}
+      {% if profile.linkedin_url %}<span><i class="contact-icon">🔗</i> {{ profile.linkedin_url }}</span>{% endif %}
+      {% if profile.github_url %}<span><i class="contact-icon">💻</i> {{ profile.github_url }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="body-content">
+    <div class="main-column">
+      {% if profile.bio or analysis.ai_feedback or sections.summary %}
+      <div class="section">
+        <div class="section-title">Professional Summary</div>
+        <div class="summary-text">{{ profile.bio|default:analysis.ai_feedback|default:sections.summary|default:""|truncatewords:60 }}</div>
+      </div>
+      {% endif %}
+
+      {% if experience_items or sections.experience %}
+      <div class="section">
+        <div class="section-title">Experience</div>
+        {% if experience_items|length == 1 and not experience_items.0.company and not experience_items.0.dates and not experience_items.0.description %}
+        <div class="summary-text">{{ experience_items.0.title|linebreaksbr }}</div>
+        {% else %}
+        {% for item in experience_items %}
+        <div class="experience-item">
+          <div class="title">{{ item.title }}</div>
+          {% if item.company or item.dates %}<div class="meta">{{ item.company }}{% if item.company and item.dates %} — {% endif %}{{ item.dates }}</div>{% endif %}
+          {% if item.description %}<div class="desc">{{ item.description|linebreaksbr }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if profile.current_role or profile.target_role %}
+      <div class="section">
+        <div class="section-title">Career Objective</div>
+        <div class="summary-text">
+          {% if profile.target_role %}Seeking a position as <strong>{{ profile.target_role }}</strong>.{% endif %}
+          {% if profile.current_role %}Currently working as <strong>{{ profile.current_role }}</strong>{% if profile.years_experience != '0' %} with {{ profile.get_years_experience_display }}{% endif %}.{% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if profile.education_level or sections.education %}
+      <div class="section">
+        <div class="section-title">Education</div>
+        {% if profile.education_level %}
+        <div class="education-item">
+          <div class="title">{{ profile.get_education_level_display }}{% if profile.field_of_study %} in {{ profile.field_of_study }}{% endif %}</div>
+          {% if profile.institution %}<div class="meta">{{ profile.institution }}{% if profile.graduation_year %} — {{ profile.graduation_year }}{% endif %}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if sections.education %}
+        <div class="summary-text" style="margin-top:4px;">{{ sections.education|linebreaksbr }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="side-column">
+      {% if all_skills %}
+      <div class="section">
+        <div class="section-title">Skills</div>
+        <div class="skill-items">
+          {% for skill in all_skills %}
+          <span class="skill-tag">{{ skill }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if certifications %}
+      <div class="section">
+        <div class="section-title">Certifications</div>
+        <div class="skill-items">
+          {% for cert in certifications %}
+          <span class="skill-tag">{{ cert }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if profile.linkedin_url or profile.github_url or profile.portfolio_url or profile.phone %}
+      <div class="section">
+        <div class="section-title">Contact</div>
+        {% if profile.phone %}<div class="contact-item">📞 {{ profile.phone }}</div>{% endif %}
+        {% if profile.location %}<div class="contact-item">📍 {{ profile.location }}</div>{% endif %}
+        {% if profile.linkedin_url %}<div class="contact-item">🔗 <a href="{{ profile.linkedin_url }}" style="color:#1a73e8;">LinkedIn</a></div>{% endif %}
+        {% if profile.github_url %}<div class="contact-item">💻 <a href="{{ profile.github_url }}" style="color:#1a73e8;">GitHub</a></div>{% endif %}
+        {% if profile.portfolio_url %}<div class="contact-item">🌐 <a href="{{ profile.portfolio_url }}" style="color:#1a73e8;">Portfolio</a></div>{% endif %}
+      </div>
+      {% endif %}
+
+      {% if analysis %}
+      <div class="section">
+        <div class="section-title">CV Score</div>
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:28pt;font-weight:700;color:#1a73e8;">{{ analysis.overall_score|floatformat:0 }}</div>
+          <div style="font-size:9pt;color:#666;">/ 100</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% for section in extra_sections %}
+      <div class="section">
+        <div class="section-title">{{ section.name }}</div>
+        <div class="summary-text">{{ section.content|linebreaksbr }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</body>
+</html>

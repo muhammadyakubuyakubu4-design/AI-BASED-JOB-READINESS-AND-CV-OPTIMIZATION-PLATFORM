@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-1">Compare CV Versions</h5>
+      <p class="text-muted small mb-0">Select up to 3 CVs to compare their analysis scores side by side.</p>
+    </div>
+  </div>
+
+  <form method="GET" id="compareForm">
+    <div class="row g-3 mb-4">
+      {% for cv in cvs %}
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 {% if cv.pk|stringformat:'s' in request.GET.cv %}border-primary border-2{% endif %}">
+          <div class="card-body p-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="cv" value="{{ cv.pk }}"
+                     id="cv_{{ cv.pk }}"
+                     {% if cv.pk|stringformat:'s' in request.GET.cv %}checked{% endif %}
+                     onchange="document.getElementById('compareForm').submit();">
+              <label class="form-check-label fw-medium" for="cv_{{ cv.pk }}">
+                {{ cv.original_filename|truncatechars:30 }}
+              </label>
+            </div>
+            <div class="small text-muted mt-2">
+              <i class="fas fa-calendar me-1"></i>{{ cv.uploaded_at|date:'M d, Y' }}
+              {% if cv.analysis %}
+              <br><i class="fas fa-chart-line me-1"></i>Score: <span class="fw-bold">{{ cv.analysis.overall_score }}/100</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-5 text-muted">
+        <i class="fas fa-file-alt fa-3x mb-3 d-block"></i>
+        No CVs found. <a href="{% url 'cv_analyzer:upload' %}">Upload your first CV</a>.
+      </div>
+      {% endfor %}
+    </div>
+  </form>
+
+  {% if selected_cvs %}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-3">Score Comparison</h6>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:200px;">Metric</th>
+              {% for cv in selected_cvs %}
+                <th class="text-center">{{ cv.original_filename|truncatechars:20 }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fw-medium">Upload Date</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.uploaded_at|date:'M d, Y' }}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td class="fw-medium">File Size</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.file.size|filesizeformat }}</td>
+              {% endfor %}
+            </tr>
+            {% if selected_cvs.0.analysis %}
+            <tr>
+              <td class="fw-medium">Overall Score</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">
+                  {% if cv.analysis %}
+                    <span class="badge bg-{% if cv.analysis.overall_score >= 80 %}success{% elif cv.analysis.overall_score >= 60 %}warning text-dark{% else %}danger{% endif %} rounded-pill fs-6">
+                      {{ cv.analysis.overall_score }}/100
+                    </span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td class="fw-medium">Formatting</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.analysis.formatting_score|default:'—' }}/100</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td class="fw-medium">Content</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.analysis.content_score|default:'—' }}/100</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td class="fw-medium">Keywords</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.analysis.keyword_score|default:'—' }}/100</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td class="fw-medium">ATS Compatibility</td>
+              {% for cv in selected_cvs %}
+                <td class="text-center">{{ cv.analysis.ats_score|default:'—' }}/100</td>
+              {% endfor %}
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

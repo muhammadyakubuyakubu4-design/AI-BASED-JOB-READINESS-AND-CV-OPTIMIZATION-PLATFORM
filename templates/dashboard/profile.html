@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile — CareerAI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row g-4">
+    <!-- Profile Card -->
+    <div class="col-lg-4">
+      <div class="card dash-card text-center">
+        <div class="card-body py-5">
+          <div class="profile-avatar-wrapper mx-auto mb-3">
+            <img src="{{ request.user.profile.avatar_url }}" alt="Avatar" class="profile-avatar-lg" />
+          </div>
+          <h4 class="mb-1">{{ request.user.full_name }}</h4>
+          <p class="text-muted mb-1">
+            <i class="fas fa-briefcase me-1"></i>
+            {{ request.user.profile.current_role|default:"Job Seeker" }}
+          </p>
+          {% if request.user.profile.location %}
+          <p class="text-muted mb-3 small">
+            <i class="fas fa-map-marker-alt me-1"></i>{{ request.user.profile.location }}
+          </p>
+          {% endif %}
+
+          <div class="readiness-badge mb-3">
+            <div class="readiness-score-circle" style="--score: {{ request.user.profile.readiness_score }}">
+              <span>{{ request.user.profile.readiness_score|floatformat:0 }}</span>
+            </div>
+            <div class="readiness-label">Readiness Score</div>
+          </div>
+
+          <div class="d-flex gap-2 justify-content-center mb-4">
+            {% if request.user.profile.linkedin_url %}
+            <a href="{{ request.user.profile.linkedin_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-circle social-btn">
+              <i class="fab fa-linkedin-in"></i>
+            </a>
+            {% endif %}
+            {% if request.user.profile.github_url %}
+            <a href="{{ request.user.profile.github_url }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-circle social-btn">
+              <i class="fab fa-github"></i>
+            </a>
+            {% endif %}
+            {% if request.user.profile.portfolio_url %}
+            <a href="{{ request.user.profile.portfolio_url }}" target="_blank" class="btn btn-sm btn-outline-success rounded-circle social-btn">
+              <i class="fas fa-globe"></i>
+            </a>
+            {% endif %}
+          </div>
+
+          <a href="{% url 'dashboard:profile_update' %}" class="btn btn-success w-100">
+            <i class="fas fa-edit me-2"></i>Edit Profile
+          </a>
+        </div>
+      </div>
+
+      <!-- Skills Summary -->
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-code me-2 text-success"></i>My Skills</h6>
+          <a href="{% url 'assessment:skills' %}" class="btn btn-xs btn-outline-success">Manage</a>
+        </div>
+        <div class="card-body">
+          {% for skill in request.user.skills.all|slice:":8" %}
+          <span class="skill-tag">{{ skill.skill_name }}</span>
+          {% empty %}
+          <p class="text-muted small">No skills added yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Details -->
+    <div class="col-lg-8">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-user me-2 text-success"></i>Profile Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Full Name</div>
+                <div class="profile-info-value">{{ request.user.full_name }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Email</div>
+                <div class="profile-info-value">
+                {{ request.user.email }}
+                {% if request.user.email_verified %}
+                  <span class="badge bg-success rounded-pill ms-1" title="Email verified"><i class="fas fa-check-circle"></i></span>
+                {% else %}
+                  <span class="badge bg-warning text-dark rounded-pill ms-1" title="Email not verified">
+                    <i class="fas fa-exclamation-triangle"></i> Unverified
+                  </span>
+                  <a href="{% url 'authentication:send_verification' %}" class="btn btn-sm btn-outline-warning rounded-pill ms-1">Verify</a>
+                {% endif %}
+              </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Phone</div>
+                <div class="profile-info-value">{{ request.user.profile.phone|default:"Not provided" }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Location</div>
+                <div class="profile-info-value">{{ request.user.profile.location|default:"Not provided" }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Current Role</div>
+                <div class="profile-info-value">{{ request.user.profile.current_role|default:"Not set" }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Target Role</div>
+                <div class="profile-info-value">{{ request.user.profile.target_role|default:"Not set" }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Experience</div>
+                <div class="profile-info-value">{{ request.user.profile.get_years_experience_display }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Member Since</div>
+                <div class="profile-info-value">{{ request.user.date_joined|date:"F Y" }}</div>
+              </div>
+            </div>
+            {% if request.user.profile.bio %}
+            <div class="col-12">
+              <div class="profile-info-item">
+                <div class="profile-info-label">Bio</div>
+                <div class="profile-info-value">{{ request.user.profile.bio }}</div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Activity</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="activity-timeline p-4">
+            {% with recent_cv=request.user.cv_uploads.first %}
+            {% if recent_cv %}
+            <div class="activity-item">
+              <div class="activity-dot bg-success"></div>
+              <div class="activity-content">
+                <div class="activity-title">CV Uploaded: {{ recent_cv.original_filename }}</div>
+                <div class="activity-time">{{ recent_cv.uploaded_at|timesince }} ago</div>
+              </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+            {% with latest_match=request.user.job_matches.first %}
+            {% if latest_match %}
+            <div class="activity-item">
+              <div class="activity-dot bg-primary"></div>
+              <div class="activity-content">
+                <div class="activity-title">Job Matched: {{ latest_match.job_description.title }}</div>
+                <div class="activity-time">{{ latest_match.created_at|timesince }} ago</div>
+              </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+            {% with latest_assessment=request.user.assessments.first %}
+            {% if latest_assessment %}
+            <div class="activity-item">
+              <div class="activity-dot bg-warning"></div>
+              <div class="activity-content">
+                <div class="activity-title">Assessment Completed — Score: {{ latest_assessment.readiness_score|floatformat:0 }}/100</div>
+                <div class="activity-time">{{ latest_assessment.created_at|timesince }} ago</div>
+              </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

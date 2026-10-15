@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Match History — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="fas fa-briefcase text-primary me-2"></i>Job Match History</h5>
+    <a href="{% url 'job_matching:matching' %}" class="btn btn-success btn-sm"><i class="fas fa-plus me-1"></i>New Match</a>
+  </div>
+  {% if matches %}
+  <div class="card dash-card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Job Title</th><th>Company</th><th>CV Used</th><th>Match Score</th><th>Date</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for match in matches %}
+            <tr>
+              <td class="fw-medium">{{ match.job_description.title }}</td>
+              <td class="text-muted">{{ match.job_description.company|default:"—" }}</td>
+              <td class="text-muted small">{{ match.cv_upload.original_filename|truncatechars:25 }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px;width:80px">
+                    <div class="progress-bar bg-{% if match.match_score >= 70 %}success{% elif match.match_score >= 50 %}warning{% else %}danger{% endif %}" style="width:{{ match.match_score }}%"></div>
+                  </div>
+                  <span class="fw-semibold">{{ match.match_score|floatformat:0 }}%</span>
+                </div>
+              </td>
+              <td class="text-muted small">{{ match.created_at|date:"M d, Y" }}</td>
+              <td>
+                <a href="{% url 'job_matching:result' match.pk %}" class="btn btn-xs btn-outline-success me-1">View</a>
+                <form method="POST" action="{% url 'job_matching:delete' match.pk %}" class="d-inline" onsubmit="return confirm('Delete?')">
+                  {% csrf_token %}<button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state-large text-center py-5">
+    <i class="fas fa-briefcase fa-4x text-muted mb-4"></i>
+    <h5 class="text-muted">No job matches yet</h5>
+    <a href="{% url 'job_matching:matching' %}" class="btn btn-success mt-2"><i class="fas fa-search me-2"></i>Analyze First Match</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

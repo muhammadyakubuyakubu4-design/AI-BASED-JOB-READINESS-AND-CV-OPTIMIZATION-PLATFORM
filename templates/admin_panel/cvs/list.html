@@ -1,0 +1,126 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}CVs — Admin{% endblock %}
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-file-alt"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total CVs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#0d6efd;--kpi-bg:#e7f3ff">
+      <div class="ap-kpi-icon"><i class="fas fa-robot"></i></div>
+      <div><div class="ap-kpi-value">{{ avg_score }}</div><div class="ap-kpi-label">Avg Overall Score</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#fd7e14;--kpi-bg:#fff3e0">
+      <div class="ap-kpi-icon"><i class="fas fa-hdd"></i></div>
+      <div><div class="ap-kpi-value">{{ total_size_mb }} MB</div><div class="ap-kpi-label">Total Storage</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#6f42c1;--kpi-bg:#f3eeff">
+      <div class="ap-kpi-icon"><i class="fas fa-download"></i></div>
+      <div>
+        <div class="ap-kpi-value" style="font-size:1rem;padding-top:4px">
+          <a href="{% url 'admin_panel:export_cvs' %}" class="ap-btn ap-btn-primary ap-btn-sm"><i class="fas fa-file-csv"></i> Export CSV</a>
+        </div>
+        <div class="ap-kpi-label">Export All Data</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by filename or user email…" data-auto-submit>
+    </div>
+    <select name="file_type" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Types</option>
+      <option value="pdf" {% if file_type == 'pdf' %}selected{% endif %}>PDF</option>
+      <option value="docx" {% if file_type == 'docx' %}selected{% endif %}>DOCX</option>
+    </select>
+    <select name="has_analysis" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All CVs</option>
+      <option value="yes" {% if has_analysis == 'yes' %}selected{% endif %}>Analysed</option>
+      <option value="no" {% if has_analysis == 'no' %}selected{% endif %}>Not Analysed</option>
+    </select>
+    {% if q or file_type or has_analysis %}
+    <a href="{% url 'admin_panel:cvs' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-file-alt me-2 text-primary"></i>CV Uploads <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>#</th><th>File</th><th>User</th><th>Type</th><th>Size</th><th>Overall</th><th>ATS</th><th>Grammar</th><th>Uploaded</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for cv in cvs %}
+        <tr>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ cv.pk }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-file-{{ cv.file_type }} text-{% if cv.file_type == 'pdf' %}danger{% else %}primary{% endif %}"></i>
+              <span style="font-size:.82rem">{{ cv.original_filename|truncatechars:26 }}</span>
+            </div>
+          </td>
+          <td>
+            <a href="{% url 'admin_panel:user_detail' cv.user.pk %}" style="font-size:.78rem;color:var(--ap-primary)">{{ cv.user.email|truncatechars:24 }}</a>
+          </td>
+          <td><span class="ap-badge ap-badge-secondary">{{ cv.file_type|upper }}</span></td>
+          <td style="font-size:.78rem;color:var(--ap-text-muted)">{{ cv.file_size_kb }} KB</td>
+          <td>
+            {% if cv.has_analysis %}
+            <span class="ap-score-pill {% if cv.analysis.overall_score >= 80 %}ap-score-excellent{% elif cv.analysis.overall_score >= 60 %}ap-score-good{% elif cv.analysis.overall_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">
+              {{ cv.analysis.overall_score|floatformat:0 }}
+            </span>
+            {% else %}<span class="ap-badge ap-badge-secondary">—</span>{% endif %}
+          </td>
+          <td style="font-size:.8rem">{% if cv.has_analysis %}{{ cv.analysis.ats_score|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td style="font-size:.8rem">{% if cv.has_analysis %}{{ cv.analysis.grammar_score|floatformat:0 }}{% else %}—{% endif %}</td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ cv.uploaded_at|date:"M d, Y" }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'admin_panel:cv_detail' cv.pk %}" class="ap-btn ap-btn-outline ap-btn-sm ap-btn-icon" title="View"><i class="fas fa-eye"></i></a>
+              <form method="post" action="{% url 'admin_panel:cv_delete' cv.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="ap-btn ap-btn-danger ap-btn-sm ap-btn-icon"
+                  data-confirm="Delete this CV? This cannot be undone." title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10"><div class="ap-empty"><i class="fas fa-file-alt"></i><p>No CVs found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if cvs.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ cvs.start_index }}–{{ cvs.end_index }} of {{ cvs.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if cvs.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ cvs.previous_page_number }}&q={{ q }}&file_type={{ file_type }}&has_analysis={{ has_analysis }}">‹</a></li>{% endif %}
+      {% for n in cvs.paginator.page_range %}
+        {% if n == cvs.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= cvs.number|add:"-2" and n <= cvs.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&file_type={{ file_type }}&has_analysis={{ has_analysis }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if cvs.has_next %}<li class="page-item"><a class="page-link" href="?page={{ cvs.next_page_number }}&q={{ q }}&file_type={{ file_type }}&has_analysis={{ has_analysis }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

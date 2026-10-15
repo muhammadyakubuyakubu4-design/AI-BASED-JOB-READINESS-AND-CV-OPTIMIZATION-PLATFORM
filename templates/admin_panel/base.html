@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}{{ page_title|default:"Admin" }} — CareerAI Admin{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/admin_panel.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}"/>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="ap-sidebar" id="apSidebar">
+  <div class="ap-sidebar-header">
+    <a href="{% url 'admin_panel:dashboard' %}" class="ap-brand">
+      <div class="ap-brand-icon"><i class="fas fa-shield-alt"></i></div>
+      <span class="ap-brand-text">Admin Panel</span>
+    </a>
+    <button class="ap-sidebar-close d-lg-none" id="apSidebarClose"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="ap-admin-info">
+    <div class="ap-admin-avatar"><i class="fas fa-user-shield"></i></div>
+    <div>
+      <div class="ap-admin-name">{{ request.user.get_full_name|default:request.user.email }}</div>
+      <div class="ap-admin-role"><i class="fas fa-circle text-success me-1" style="font-size:.5rem"></i>Administrator</div>
+    </div>
+  </div>
+
+  <ul class="ap-nav">
+    <li class="ap-nav-section">Overview</li>
+    <li><a href="{% url 'admin_panel:dashboard' %}" class="ap-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:analytics' %}" class="ap-nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+      <i class="fas fa-chart-line"></i><span>Analytics</span>
+    </a></li>
+
+    <li class="ap-nav-section">Management</li>
+    <li><a href="{% url 'admin_panel:users' %}" class="ap-nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="fas fa-users"></i><span>Users</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:cvs' %}" class="ap-nav-link {% if 'cv' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="fas fa-file-alt"></i><span>CVs & Analysis</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:jobs' %}" class="ap-nav-link {% if 'job' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="fas fa-briefcase"></i><span>Job Matching</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:assessments' %}" class="ap-nav-link {% if request.resolver_match.url_name == 'assessments' %}active{% endif %}">
+      <i class="fas fa-clipboard-check"></i><span>Assessments</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:skills' %}" class="ap-nav-link {% if request.resolver_match.url_name == 'skills' %}active{% endif %}">
+      <i class="fas fa-star"></i><span>Skills</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:interviews' %}" class="ap-nav-link {% if request.resolver_match.url_name == 'interviews' %}active{% endif %}">
+      <i class="fas fa-comments"></i><span>Interview Sessions</span>
+    </a></li>
+
+    <li class="ap-nav-section">Communication</li>
+    <li><a href="{% url 'admin_panel:notifications' %}" class="ap-nav-link {% if 'notification' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="fas fa-bell"></i><span>Notifications</span>
+    </a></li>
+
+    <li class="ap-nav-section">Exports</li>
+    <li><a href="{% url 'admin_panel:export_users' %}" class="ap-nav-link">
+      <i class="fas fa-file-csv"></i><span>Export Users</span>
+    </a></li>
+    <li><a href="{% url 'admin_panel:export_cvs' %}" class="ap-nav-link">
+      <i class="fas fa-file-export"></i><span>Export CV Data</span>
+    </a></li>
+
+    <li class="ap-nav-section">System</li>
+    <li><a href="/admin/" class="ap-nav-link" target="_blank">
+      <i class="fas fa-cog"></i><span>Django Admin</span>
+    </a></li>
+  </ul>
+</nav>
+<div class="ap-sidebar-overlay" id="apOverlay"></div>
+
+<!-- MAIN -->
+<div class="ap-main" id="apMain">
+  <!-- Top Navbar -->
+  <nav class="ap-topbar">
+    <div class="ap-topbar-left">
+      <button class="ap-toggle-btn" id="apToggle"><i class="fas fa-bars"></i></button>
+      <div class="ap-breadcrumb">
+        <span class="ap-page-title">{% block page_header %}{{ page_title }}{% endblock %}</span>
+      </div>
+    </div>
+    <div class="ap-topbar-right">
+      <button class="ap-icon-btn" id="apThemeToggle" title="Toggle theme">
+        <i class="fas fa-moon" id="apThemeIcon"></i>
+      </button>
+      <a href="{% url 'admin_panel:api_stats' %}" class="ap-icon-btn" title="Refresh stats" id="apRefresh">
+        <i class="fas fa-sync-alt"></i>
+      </a>
+      <div class="dropdown">
+        <button class="ap-user-btn dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-user-shield me-2"></i>
+          <span class="d-none d-md-inline">{{ request.user.first_name|default:"Admin" }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'dashboard:profile' %}"><i class="fas fa-user me-2"></i>My Profile</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form method="POST" action="{% url 'authentication:logout' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Messages -->
+  {% if messages %}
+  <div class="ap-messages">
+    {% for message in messages %}
+    <div class="ap-alert ap-alert-{{ message.tags }} alert alert-dismissible fade show" role="alert">
+      {% if 'success' in message.tags %}<i class="fas fa-check-circle me-2"></i>
+      {% elif 'error' in message.tags %}<i class="fas fa-times-circle me-2"></i>
+      {% else %}<i class="fas fa-info-circle me-2"></i>{% endif %}
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Content -->
+  <main class="ap-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- ===================== AI CHATBOT ===================== -->
+<div class="chatbot-widget" id="chatbotWidget">
+  <div class="chatbot-header">
+    <div class="chatbot-header-info">
+      <div class="chatbot-avatar"><i class="fas fa-robot"></i></div>
+      <div>
+        <div class="chatbot-name">CareerBot</div>
+        <div class="chatbot-status"><span class="status-dot"></span> Online</div>
+      </div>
+    </div>
+    <button class="chatbot-close" id="chatbotClose"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="chatbot-messages" id="chatbotMessages">
+    <div class="chat-message bot-message">
+      <div class="chat-bubble">
+        Hi! I'm CareerBot 🤖 I'm here to help with your career journey. Ask me anything about CVs, interviews, or career advice!
+      </div>
+    </div>
+  </div>
+  <div class="chatbot-input-area">
+    <input type="text" class="chatbot-input" id="chatbotInput" placeholder="Ask me anything..." />
+    <button class="chatbot-send" id="chatbotSend"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+<button class="chatbot-trigger" id="chatbotTrigger">
+  <i class="fas fa-robot"></i>
+  <span class="chatbot-trigger-badge" id="chatbotBadge">1</span>
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/admin_panel.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

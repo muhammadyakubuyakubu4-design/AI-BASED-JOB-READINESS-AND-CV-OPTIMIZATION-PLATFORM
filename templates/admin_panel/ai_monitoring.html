@@ -1,0 +1,50 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}AI Monitoring — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-12">
+    <div class="ap-chart-card">
+      <div class="ap-chart-body">
+        <h5 class="fw-bold mb-2"><i class="fas fa-robot me-2"></i>AI Monitoring</h5>
+        <p class="text-muted small mb-0">Recent AI-powered operations across the platform. Configure AI settings in <a href="{% url 'admin_panel:settings' %}">System Settings</a>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for item in action_counts %}
+  <div class="col-md-3">
+    <div class="ap-kpi-card" style="--kpi-color:#0d6efd;--kpi-bg:#e8f0fe">
+      <div class="ap-kpi-icon"><i class="fas fa-{% if item.action_type == 'create' %}plus-circle{% elif item.action_type == 'update' %}sync{% else %}search{% endif %}"></i></div>
+      <div><div class="ap-kpi-value">{{ item.count }}</div><div class="ap-kpi-label">{{ item.action_type|title }} Actions</div></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="ap-table-card">
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-history me-2"></i>Recent AI Activity</span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>User</th><th>Action</th><th>Description</th><th>Timestamp</th></tr>
+      </thead>
+      <tbody>
+        {% for log in recent_ai_logs %}
+        <tr>
+          <td style="font-size:.82rem">{{ log.user.email|default:"—" }}</td>
+          <td><span class="ap-badge ap-badge-primary">{{ log.get_action_type_display }}</span></td>
+          <td style="font-size:.78rem">{{ log.description|truncatechars:80 }}</td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted)">{{ log.created_at|date:"M d, H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="ap-empty"><i class="fas fa-robot"></i><p>No AI activity recorded yet.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

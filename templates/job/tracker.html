@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% block title %}Job Tracker — CareerAI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tracker-board { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; min-height: 70vh; }
+  .tracker-col { flex: 0 0 260px; display: flex; flex-direction: column; }
+  .col-header { border-radius: 8px 8px 0 0; padding: .6rem 1rem; font-weight: 700; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; display: flex; align-items: center; gap: .5rem; }
+  .col-body { flex: 1; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-top: none; border-radius: 0 0 8px 8px; padding: .5rem; display: flex; flex-direction: column; gap: .5rem; min-height: 200px; }
+  .tracker-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 8px; padding: .75rem; cursor: grab; transition: box-shadow .15s, transform .15s; user-select: none; }
+  .tracker-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }
+  .tracker-card.dragging { opacity: .5; }
+  .col-body.drag-over { background: rgba(var(--bs-primary-rgb), .08); border-color: var(--bs-primary); }
+  .card-title-text { font-weight: 600; font-size: .88rem; line-height: 1.3; }
+  .card-company { font-size: .77rem; color: var(--bs-secondary-color); }
+  .card-score { font-size: .75rem; font-weight: 700; }
+  .card-actions { display: flex; gap: .3rem; margin-top: .5rem; }
+  .notes-area { font-size: .78rem; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 4px; padding: .3rem .5rem; resize: vertical; width: 100%; min-height: 48px; }
+  .follow-up-input { font-size: .78rem; }
+  .empty-col { text-align: center; color: var(--bs-secondary-color); font-size: .82rem; padding: 1.5rem .5rem; }
+  .tracker-stat { min-width: 80px; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-columns text-primary me-2"></i>Job Application Tracker</h5>
+      <p class="text-muted mb-0 small">Drag cards between columns to update your application status.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'job_matching:matching' %}" class="btn btn-success btn-sm">
+        <i class="fas fa-plus me-1"></i>New Match
+      </a>
+      <a href="{% url 'job_matching:history' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-list me-1"></i>List View
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="d-flex gap-3 mb-4 flex-wrap">
+    {% for col in columns %}
+    <div class="card dash-card tracker-stat">
+      <div class="card-body py-2 px-3 text-center">
+        <div class="fw-bold text-{{ col.color }}">{{ col.items|length }}</div>
+        <div class="text-muted" style="font-size:.75rem">{{ col.label }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="card dash-card tracker-stat ms-auto">
+      <div class="card-body py-2 px-3 text-center">
+        <div class="fw-bold">{{ total }}</div>
+        <div class="text-muted" style="font-size:.75rem">Total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="tracker-board" id="trackerBoard">
+    {% for col in columns %}
+    <div class="tracker-col" data-status="{{ col.key }}">
+      <div class="col-header bg-{{ col.color }} {% if col.color == 'warning' or col.color == 'info' %}text-dark{% else %}text-white{% endif %}">
+        <i class="fas {{ col.icon }}"></i> {{ col.label }}
+        <span class="ms-auto badge bg-white {% if col.color == 'warning' or col.color == 'info' %}text-dark{% else %}text-{{ col.color }}{% endif %}">{{ col.items|length }}</span>
+      </div>
+      <div class="col-body" id="col-{{ col.key|default:'saved' }}" data-status="{{ col.key }}">
+        {% for match in col.items %}
+        <div class="tracker-card" draggable="true"
+             data-pk="{{ match.pk }}"
+             data-status="{{ match.application_status }}"
+             data-score="{{ match.match_score|floatformat:0 }}">
+          <!-- Title & Company -->
+          <div class="card-title-text">{{ match.job_description.title }}</div>
+          <div class="card-company">
+            {% if match.job_description.company %}{{ match.job_description.company }}{% endif %}
+            {% if match.job_description.location %} · {{ match.job_description.location }}{% endif %}
+          </div>
+
+          <!-- Match score + ATS badge -->
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <span class="badge bg-{% if match.match_score >= 70 %}success{% elif match.match_score >= 50 %}warning text-dark{% else %}danger{% endif %} card-score">
+              {{ match.match_score|floatformat:0 }}% match
+            </span>
+            {% if match.ats_platform %}
+            <span class="badge bg-secondary card-score">{{ match.ats_platform }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Notes -->
+          <textarea class="notes-area mt-2" placeholder="Notes..." data-pk="{{ match.pk }}" data-field="notes">{{ match.notes }}</textarea>
+
+          <!-- Follow-up date -->
+          <input type="date" class="form-control form-control-sm follow-up-input mt-1" placeholder="Follow-up date"
+                 value="{{ match.follow_up_date|date:'Y-m-d' }}"
+                 data-pk="{{ match.pk }}" data-field="follow_up_date" title="Follow-up date">
+
+          <!-- Action buttons -->
+          <div class="card-actions mt-2">
+            <a href="{% url 'job_matching:result' match.pk %}" class="btn btn-xs btn-outline-primary" title="View result">
+              <i class="fas fa-eye"></i>
+            </a>
+            <a href="{% url 'cv_analyzer:optimize_bullets' match.cv_upload_id match.pk %}" class="btn btn-xs btn-outline-success" title="Optimize bullets">
+              <i class="fas fa-magic"></i>
+            </a>
+            <button type="button" class="btn btn-xs btn-outline-danger ms-auto delete-btn" data-pk="{{ match.pk }}" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-col"><i class="fas fa-inbox mb-1 d-block"></i>No jobs here</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Delete job match?</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body text-muted small">This will permanently remove this job match and its results.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="POST">{% csrf_token %}<button type="submit" class="btn btn-sm btn-danger">Delete</button></form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+             document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+const UPDATE_URL = '{% url "job_matching:update_status" %}';
+
+// ── Drag & Drop ──────────────────────────────────────────────────────────────
+let dragCard = null;
+
+document.querySelectorAll('.tracker-card').forEach(card => {
+  card.addEventListener('dragstart', () => { dragCard = card; card.classList.add('dragging'); });
+  card.addEventListener('dragend', () => { dragCard = null; card.classList.remove('dragging'); });
+});
+
+document.querySelectorAll('.col-body').forEach(col => {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', async e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!dragCard) return;
+    const newStatus = col.dataset.status;
+    const pk = dragCard.dataset.pk;
+    if (dragCard.dataset.status === newStatus) return;
+
+    // Optimistic UI move
+    col.insertBefore(dragCard, col.querySelector('.empty-col'));
+    dragCard.dataset.status = newStatus;
+
+    // Update server
+    await fetch(UPDATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ pk, status: newStatus }),
+    });
+
+    // Remove empty-col placeholders and refresh counts
+    refreshEmptyStates();
+    refreshCounts();
+  });
+});
+
+// ── Notes & follow-up date autosave (debounced) ──────────────────────────────
+function debounce(fn, delay) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+document.querySelectorAll('.notes-area').forEach(el => {
+  el.addEventListener('input', debounce(async () => {
+    await fetch(UPDATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ pk: el.dataset.pk, notes: el.value }),
+    });
+  }, 800));
+});
+
+document.querySelectorAll('input[data-field="follow_up_date"]').forEach(el => {
+  el.addEventListener('change', async () => {
+    await fetch(UPDATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ pk: el.dataset.pk, follow_up_date: el.value }),
+    });
+  });
+});
+
+// ── Delete modal ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('deleteForm').action = `/jobs/delete/${btn.dataset.pk}/`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  });
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function refreshEmptyStates() {
+  document.querySelectorAll('.col-body').forEach(col => {
+    const cards = col.querySelectorAll('.tracker-card');
+    let empty = col.querySelector('.empty-col');
+    if (cards.length === 0 && !empty) {
+      empty = document.createElement('div');
+      empty.className = 'empty-col';
+      empty.innerHTML = '<i class="fas fa-inbox mb-1 d-block"></i>No jobs here';
+      col.appendChild(empty);
+    } else if (cards.length > 0 && empty) {
+      empty.remove();
+    }
+  });
+}
+
+function refreshCounts() {
+  document.querySelectorAll('.tracker-col').forEach(col => {
+    const status = col.dataset.status;
+    const count = col.querySelectorAll('.tracker-card').length;
+    const badge = col.querySelector('.col-header .badge');
+    if (badge) badge.textContent = count;
+  });
+}
+</script>
+{% endblock %}

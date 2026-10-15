@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ user.full_name }} — Professional Resume</title>
+<style>
+  @page { margin: 0.75in 0.85in; size: letter; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Times New Roman', 'Georgia', serif; font-size: 10.5pt; line-height: 1.5; color: #222; background: #fff; }
+
+  .resume-page { max-width: 8.5in; margin: 0 auto; }
+  .header { text-align: center; padding: 24px 36px 16px; border-bottom: 2px solid #222; margin-bottom: 16px; }
+  .header h1 { font-size: 22pt; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .header .subtitle { font-size: 11pt; color: #555; font-style: italic; margin-bottom: 8px; }
+  .header .contact-row { font-size: 9pt; color: #444; }
+  .header .contact-row span { display: inline-block; margin: 0 6px; }
+
+  .body-content { padding: 0 36px 24px; }
+  .section { margin-bottom: 14px; }
+  .section-title { font-size: 11pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid #999; padding-bottom: 3px; margin-bottom: 8px; color: #333; }
+
+  .section-content { padding-left: 4px; }
+  .summary-text { font-size: 10pt; color: #333; text-align: justify; }
+
+  .skill-items { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .skill-tag { font-size: 9.5pt; color: #333; }
+  .skill-tag + .skill-tag::before { content: "•"; margin-right: 6px; color: #999; }
+
+  .item { margin-bottom: 10px; }
+  .item-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .item-title { font-weight: 700; font-size: 10.5pt; }
+  .item-subtitle { font-style: italic; font-size: 10pt; color: #555; }
+  .item-date { font-size: 9.5pt; color: #666; white-space: nowrap; }
+  .item-desc { font-size: 9.5pt; color: #444; margin-top: 2px; text-align: justify; }
+
+  .two-col { display: flex; gap: 36px; }
+  .col-main { flex: 1; }
+  .col-side { width: 200px; flex-shrink: 0; }
+
+  .contact-item { font-size: 9.5pt; margin-bottom: 4px; color: #444; }
+
+  .score-block { text-align: center; padding: 4px 0; }
+  .score-block .num { font-size: 24pt; font-weight: 700; color: #333; }
+  .score-block .lbl { font-size: 9pt; color: #666; }
+
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="resume-page">
+  <div class="header">
+    <h1>{{ user.full_name }}</h1>
+    <div class="subtitle">{{ profile.current_role|default:"Professional" }}</div>
+    <div class="contact-row">
+      <span>{{ user.email }}</span>
+      {% if profile.phone %}<span>| {{ profile.phone }}</span>{% endif %}
+      {% if profile.location %}<span>| {{ profile.location }}</span>{% endif %}
+      {% if profile.linkedin_url %}<span>| linkedin.com/in/{{ profile.linkedin_url|cut:"https://"|cut:"www."|cut:"linkedin.com/in/" }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="body-content">
+    {% if profile.bio or sections.summary %}
+    <div class="section">
+      <div class="section-title">Professional Summary</div>
+      <div class="section-content">
+        <div class="summary-text">{{ profile.bio|default:sections.summary }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="two-col">
+      <div class="col-main">
+        {% if experience_items or sections.experience %}
+        <div class="section">
+          <div class="section-title">Experience</div>
+          <div class="section-content">
+            {% if experience_items|length == 1 and not experience_items.0.company and not experience_items.0.dates and not experience_items.0.description %}
+            <div class="summary-text">{{ experience_items.0.title|linebreaksbr }}</div>
+            {% else %}
+            {% for item in experience_items %}
+            <div class="item">
+              <div class="item-header">
+                <span class="item-title">{{ item.title }}</span>
+                {% if item.dates %}<span class="item-date">{{ item.dates }}</span>{% endif %}
+              </div>
+              {% if item.company %}<div class="item-subtitle">{{ item.company }}</div>{% endif %}
+              {% if item.description %}<div class="item-desc">{{ item.description|linebreaksbr }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if profile.education_level or sections.education %}
+        <div class="section">
+          <div class="section-title">Education</div>
+          <div class="section-content">
+            {% if profile.education_level %}
+            <div class="item">
+              <div class="item-header">
+                <span class="item-title">{{ profile.get_education_level_display }}{% if profile.field_of_study %} in {{ profile.field_of_study }}{% endif %}</span>
+                {% if profile.graduation_year %}<span class="item-date">{{ profile.graduation_year }}</span>{% endif %}
+              </div>
+              {% if profile.institution %}<div class="item-subtitle">{{ profile.institution }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% if sections.education %}
+            <div class="summary-text" style="margin-top:6px;">{{ sections.education|linebreaksbr }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if profile.target_role %}
+        <div class="section">
+          <div class="section-title">Objective</div>
+          <div class="section-content">
+            <div class="summary-text">To secure a position as {{ profile.target_role }} leveraging {{ profile.get_years_experience_display|lower }} of experience.</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="col-side">
+        {% if all_skills %}
+        <div class="section">
+          <div class="section-title">Skills</div>
+          <div class="section-content">
+            <div class="skill-items">
+              {% for skill in all_skills %}
+              <span class="skill-tag">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if certifications %}
+        <div class="section" style="margin-top:14px;">
+          <div class="section-title">Certifications</div>
+          <div class="section-content">
+            <div class="skill-items">
+              {% for cert in certifications %}
+              <span class="skill-tag">{{ cert }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="section" style="margin-top:14px;">
+          <div class="section-title">Contact</div>
+          <div class="section-content">
+            {% if user.email %}<div class="contact-item">✉ {{ user.email }}</div>{% endif %}
+            {% if profile.phone %}<div class="contact-item">☏ {{ profile.phone }}</div>{% endif %}
+            {% if profile.location %}<div class="contact-item">⌂ {{ profile.location }}</div>{% endif %}
+            {% if profile.linkedin_url %}<div class="contact-item">in {{ profile.linkedin_url }}</div>{% endif %}
+          </div>
+        </div>
+
+        {% if analysis %}
+        <div class="section" style="margin-top:14px;">
+          <div class="section-title">Resume Score</div>
+          <div class="section-content">
+            <div class="score-block">
+              <div class="num">{{ analysis.overall_score|floatformat:0 }}</div>
+              <div class="lbl">out of 100</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% for section in extra_sections %}
+        <div class="section" style="margin-top:14px;">
+          <div class="section-title">{{ section.name }}</div>
+          <div class="section-content">
+            <div class="summary-text">{{ section.content|linebreaksbr }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

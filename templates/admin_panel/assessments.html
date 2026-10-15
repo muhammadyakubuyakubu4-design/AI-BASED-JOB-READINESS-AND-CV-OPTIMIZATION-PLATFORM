@@ -1,0 +1,85 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Assessments — Admin{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#1a8f5c;--kpi-bg:#e8f5ee">
+      <div class="ap-kpi-icon"><i class="fas fa-clipboard-check"></i></div>
+      <div><div class="ap-kpi-value">{{ total_count }}</div><div class="ap-kpi-label">Total Assessments</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#0d6efd;--kpi-bg:#e7f3ff">
+      <div class="ap-kpi-icon"><i class="fas fa-percentage"></i></div>
+      <div><div class="ap-kpi-value">{{ stats.avg_readiness|floatformat:1 }}%</div><div class="ap-kpi-label">Avg Readiness</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#fd7e14;--kpi-bg:#fff3e0">
+      <div class="ap-kpi-icon"><i class="fas fa-cogs"></i></div>
+      <div><div class="ap-kpi-value">{{ stats.avg_technical|floatformat:1 }}%</div><div class="ap-kpi-label">Avg Technical</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ap-kpi-card" style="--kpi-color:#6f42c1;--kpi-bg:#f3eeff">
+      <div class="ap-kpi-icon"><i class="fas fa-heart"></i></div>
+      <div><div class="ap-kpi-value">{{ stats.avg_soft|floatformat:1 }}%</div><div class="ap-kpi-label">Avg Soft Skills</div></div>
+    </div>
+  </div>
+</div>
+<div class="ap-table-card">
+  <form method="get" class="ap-filter-bar">
+    <div class="ap-search-wrapper">
+      <i class="fas fa-search ap-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="ap-search-input" placeholder="Search by user…" data-auto-submit>
+    </div>
+    <select name="level" class="ap-filter-select" onchange="this.form.submit()">
+      <option value="">All Levels</option>
+      {% for level, label in career_levels %}
+      <option value="{{ level }}" {% if level_filter == level %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if q or level_filter %}
+    <a href="{% url 'admin_panel:assessments' %}" class="ap-btn ap-btn-outline ap-btn-sm"><i class="fas fa-times"></i> Clear</a>
+    {% endif %}
+  </form>
+  <div class="ap-table-header">
+    <span class="ap-table-title"><i class="fas fa-clipboard-check me-2 text-success"></i>Assessments <span class="ap-badge ap-badge-secondary ms-2">{{ total_count }}</span></span>
+  </div>
+  <div class="table-responsive">
+    <table class="ap-table">
+      <thead>
+        <tr><th>#</th><th>User</th><th>Career Level</th><th>Readiness</th><th>Technical</th><th>Soft Skills</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {% for assessment in assessments %}
+        <tr>
+          <td style="color:var(--ap-text-muted);font-size:.75rem">{{ assessment.pk }}</td>
+          <td><a href="{% url 'admin_panel:user_detail' assessment.user.pk %}" style="font-size:.78rem;color:var(--ap-primary)">{{ assessment.user.email|truncatechars:24 }}</a></td>
+          <td><span class="ap-badge ap-badge-secondary">{{ assessment.career_level }}</span></td>
+          <td><span class="ap-score-pill {% if assessment.readiness_score >= 80 %}ap-score-excellent{% elif assessment.readiness_score >= 60 %}ap-score-good{% elif assessment.readiness_score >= 40 %}ap-score-fair{% else %}ap-score-poor{% endif %}">{{ assessment.readiness_score|floatformat:0 }}</span></td>
+          <td style="font-size:.8rem">{{ assessment.technical_score|floatformat:0 }}</td>
+          <td style="font-size:.8rem">{{ assessment.soft_skills_score|floatformat:0 }}</td>
+          <td style="font-size:.75rem;color:var(--ap-text-muted);white-space:nowrap">{{ assessment.created_at|date:"M d, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="ap-empty"><i class="fas fa-clipboard-check"></i><p>No assessments found</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if assessments.has_other_pages %}
+  <div class="ap-pagination">
+    <span>Showing {{ assessments.start_index }}–{{ assessments.end_index }} of {{ assessments.paginator.count }}</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if assessments.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ assessments.previous_page_number }}&q={{ q }}&level={{ level_filter }}">‹</a></li>{% endif %}
+      {% for n in assessments.paginator.page_range %}
+        {% if n == assessments.number %}<li class="page-item active"><span class="page-link">{{ n }}</span></li>
+        {% elif n >= assessments.number|add:"-2" and n <= assessments.number|add:"2" %}<li class="page-item"><a class="page-link" href="?page={{ n }}&q={{ q }}&level={{ level_filter }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if assessments.has_next %}<li class="page-item"><a class="page-link" href="?page={{ assessments.next_page_number }}&q={{ q }}&level={{ level_filter }}">›</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Assessment Result — CareerAI{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="fas fa-chart-bar text-success me-2"></i>Assessment Report</h5>
+    <div class="d-flex gap-2">
+      <a href="{% url 'assessment:index' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back</a>
+      <form method="POST" action="{% url 'assessment:run' %}">{% csrf_token %}
+        <button class="btn btn-success btn-sm"><i class="fas fa-redo me-1"></i>Re-assess</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card dash-card text-center">
+        <div class="card-body py-5">
+          <div class="readiness-big-score mb-3">
+            <canvas id="readinessChart" width="160" height="90"></canvas>
+            <div class="rbs-value">{{ assessment.readiness_score|floatformat:0 }}</div>
+          </div>
+          <h5 class="mb-1">{{ readiness_label.0 }}</h5>
+          <span class="badge bg-{{ readiness_label.1 }} px-3 py-2 mb-3">{{ assessment.career_level|title }} Level</span>
+          {% if assessment.ai_summary %}
+          <p class="text-muted small mt-3">{{ assessment.ai_summary }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Your Strengths</h6></div>
+        <div class="card-body">
+          {% for strength in assessment.strengths %}
+          <div class="strength-item mb-2"><i class="fas fa-check-circle text-success me-2"></i>{{ strength }}</div>
+          {% empty %}<p class="text-muted small">No strengths identified yet.</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <!-- Score Breakdown -->
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Score Breakdown</h6></div>
+        <div class="card-body">
+          {% with scores=assessment %}
+          <div class="score-breakdown-item mb-3">
+            <div class="d-flex justify-content-between mb-1"><span>Technical Skills</span><span class="fw-semibold">{{ scores.technical_score|floatformat:0 }}/100</span></div>
+            <div class="progress" style="height:10px"><div class="progress-bar bg-primary" style="width:{{ scores.technical_score }}%"></div></div>
+          </div>
+          <div class="score-breakdown-item mb-3">
+            <div class="d-flex justify-content-between mb-1"><span>Soft Skills</span><span class="fw-semibold">{{ scores.soft_skills_score|floatformat:0 }}/100</span></div>
+            <div class="progress" style="height:10px"><div class="progress-bar bg-success" style="width:{{ scores.soft_skills_score }}%"></div></div>
+          </div>
+          <div class="score-breakdown-item mb-3">
+            <div class="d-flex justify-content-between mb-1"><span>Experience</span><span class="fw-semibold">{{ scores.experience_score|floatformat:0 }}/100</span></div>
+            <div class="progress" style="height:10px"><div class="progress-bar bg-warning" style="width:{{ scores.experience_score }}%"></div></div>
+          </div>
+          <div class="score-breakdown-item">
+            <div class="d-flex justify-content-between mb-1"><span>Education</span><span class="fw-semibold">{{ scores.education_score|floatformat:0 }}/100</span></div>
+            <div class="progress" style="height:10px"><div class="progress-bar bg-info" style="width:{{ scores.education_score }}%"></div></div>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      {% if assessment.recommendations %}
+      <div class="card dash-card mb-4">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Recommendations</h6></div>
+        <div class="card-body">
+          {% for rec in assessment.recommendations %}
+          <div class="recommendation-item"><i class="fas fa-arrow-right text-success me-2"></i>{{ rec }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Action Plan -->
+      {% if assessment.action_plan %}
+      <div class="card dash-card">
+        <div class="card-header dash-card-header"><h6 class="card-title mb-0"><i class="fas fa-tasks me-2 text-info"></i>Your Action Plan</h6></div>
+        <div class="card-body p-0">
+          {% for step in assessment.action_plan %}
+          <div class="action-step">
+            <div class="action-step-num bg-success text-white">{{ step.step }}</div>
+            <div class="action-step-content">
+              <div class="action-step-title">{{ step.action }}</div>
+              <div class="action-step-meta">
+                <span class="text-muted small"><i class="fas fa-clock me-1"></i>{{ step.timeline }}</span>
+                <span class="badge bg-{% if step.priority == 'high' %}danger{% else %}warning{% endif %}-subtle text-{% if step.priority == 'high' %}danger{% else %}warning{% endif %} small ms-2">{{ step.priority|title }}</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const score = {{ assessment.readiness_score|floatformat:0 }};
+const color = score >= 80 ? '#1a8f5c' : score >= 60 ? '#0d6efd' : score >= 40 ? '#ffc107' : '#dc3545';
+new Chart(document.getElementById('readinessChart'), {
+  type: 'doughnut',
+  data: { datasets: [{ data: [score, 100-score], backgroundColor: [color, 'rgba(0,0,0,0.07)'], borderWidth: 0, circumference: 180, rotation: 270 }] },
+  options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+});
+</script>
+{% endblock %}

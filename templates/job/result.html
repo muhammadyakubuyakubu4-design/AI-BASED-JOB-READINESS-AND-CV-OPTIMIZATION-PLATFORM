@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+{% block title %}Match Result — {{ job_match.job_description.title }} — CareerAI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .scan-type-tabs { border-bottom: 2px solid var(--bs-border-color); }
+  .scan-type-tabs .nav-link {
+    color: var(--bs-body-color); border: 0; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; border-radius: 0; font-weight: 600;
+  }
+  .scan-type-tabs .nav-link.active { color: var(--bs-success); border-bottom-color: var(--bs-success); background: transparent; }
+  .scan-type-tabs .nav-link:hover { border-bottom-color: #adb5bd; }
+
+  .checklist-row { border-bottom: 1px dashed var(--bs-border-color); }
+  .checklist-row:last-child { border-bottom: 0; }
+  .checklist-status { width: 30px; text-align: center; flex-shrink: 0; }
+  .checklist-count { margin-left: auto; }
+
+  .comparison-col { min-height: 120px; }
+  .comparison-col.matched { background: rgba(25,135,84,.06); border: 1px solid rgba(25,135,84,.25); border-radius: 8px; }
+  .comparison-missing { color: var(--bs-danger); }
+
+  .job-desc-body { white-space: pre-wrap; line-height: 1.7; color: var(--bs-body-color); }
+  .section-row { border-bottom: 1px dashed var(--bs-border-color); }
+  .section-row:last-child { border-bottom: 0; }
+  .section-progress { height: 8px; border-radius: 99px; }
+  .section-progress .progress-bar { border-radius: 99px; }
+  .priority-high { background: var(--bs-danger); color: #fff; }
+  .priority-medium { background: var(--bs-warning); color: #212529; }
+  .priority-low { background: var(--bs-secondary); color: #fff; }
+  .optimize-task { display: flex; align-items: flex-start; gap: .5rem; }
+  .optimize-task .form-check-input:checked ~ .optimize-action { text-decoration: line-through; color: var(--bs-secondary); }
+  .match-gauge-wrapper { position: relative; display: inline-block; }
+  .match-gauge-value {
+    position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+    font-size: 2.4rem; font-weight: 800; bottom: 8px;
+  }
+  .searchability-tip { background: #fff8e6; border: 1px solid #f0d48a; border-radius: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-briefcase text-success me-2"></i>{{ job_match.job_description.title }}</h5>
+      <span class="text-muted">{{ job_match.job_description.company }} {% if job_match.job_description.location %}• {{ job_match.job_description.location }}{% endif %}</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'cv_analyzer:optimize_bullets' job_match.cv_upload_id job_match.pk %}" class="btn btn-success btn-sm">
+        <i class="fas fa-magic me-1"></i>✨ Optimize My Bullets
+      </a>
+      <a href="{% url 'job_matching:tracker' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-columns me-1"></i>Tracker
+      </a>
+      <a href="{% url 'job_matching:matching' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-plus me-1"></i>New Match
+      </a>
+    </div>
+  </div>
+
+  {% if ats_info %}
+  <!-- ATS Platform Detection Panel -->
+  <div class="alert alert-{{ ats_info.color }} border border-{{ ats_info.color }}-subtle mb-3" role="alert">
+    <div class="d-flex align-items-start gap-3">
+      <div class="flex-shrink-0 mt-1">
+        <span class="badge bg-{{ ats_info.color }} fs-6 px-3 py-2">
+          <i class="fas fa-robot me-1"></i>{{ ats_info.platform }}
+        </span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="fw-bold mb-1">🏢 ATS Detected: {{ ats_info.platform }}</div>
+        <div class="small mb-2">{{ ats_info.description }}</div>
+        <div id="atsTipsCollapse" class="collapse">
+          <ul class="mb-0 small ps-3">
+            {% for tip in ats_info.tips %}
+            <li class="mb-1">{{ tip }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <button class="btn btn-sm btn-outline-{{ ats_info.color }} mt-1" type="button"
+                data-bs-toggle="collapse" data-bs-target="#atsTipsCollapse">
+          <i class="fas fa-lightbulb me-1"></i>Show {{ ats_info.platform }} formatting tips
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not job_match.section_analysis and not job_match.optimize_plan %}
+  <div class="alert alert-warning dashboard-alert d-flex align-items-center gap-3 flex-wrap" role="alert">
+    <i class="fas fa-gauge-high"></i>
+    <div class="flex-grow-1">
+      <strong>This is a legacy match.</strong>
+      It was scanned before the JobScan-style report existed, so the Section-by-Section
+      breakdown and Optimize My CV plan aren't stored for it. Re-scan to unlock the full
+      <em>Match Rate / Resume Report / Job Description</em> breakdown.
+    </div>
+    <a href="{% url 'job_matching:matching' %}" class="btn btn-warning btn-sm">
+      <i class="fas fa-sync-alt me-1"></i>Re-scan this CV
+    </a>
+  </div>
+  {% endif %}
+
+
+
+  <ul class="nav scan-type-tabs mb-4" id="scanTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-matchrate" data-bs-toggle="tab" data-bs-target="#pane-matchrate" type="button" role="tab" aria-controls="pane-matchrate" aria-selected="true">
+        <i class="fas fa-percent me-1"></i>Match Rate
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-report" data-bs-toggle="tab" data-bs-target="#pane-report" type="button" role="tab" aria-controls="pane-report" aria-selected="false">
+        <i class="fas fa-file-alt me-1"></i>Resume Report
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-jd" data-bs-toggle="tab" data-bs-target="#pane-jd" type="button" role="tab" aria-controls="pane-jd" aria-selected="false">
+        <i class="fas fa-list-ul me-1"></i>Job Description
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <!-- MATCH RATE -->
+    <div class="tab-pane fade show active" id="pane-matchrate" role="tabpanel" aria-labelledby="tab-matchrate">
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <div class="card dash-card text-center h-100">
+            <div class="card-body py-5">
+              <div class="match-gauge-wrapper mx-auto mb-3">
+                <canvas id="matchGauge" width="180" height="100"></canvas>
+                <div class="match-gauge-value">{{ job_match.match_score|floatformat:0 }}<small>%</small></div>
+              </div>
+              <h5 class="mb-1">{{ match_label.0 }}</h5>
+              <span class="badge bg-{{ match_label.1 }} px-3 py-2">Match Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="card dash-card">
+            <div class="card-header dash-card-header d-flex justify-content-between align-items-center">
+              <h6 class="card-title mb-0"><i class="fas fa-search me-2 text-primary"></i>Searchability</h6>
+              <a href="#pane-report" class="btn btn-outline-primary btn-sm" data-bs-toggle="tab">
+                <i class="fas fa-tasks me-1"></i>View Issues to Fix
+              </a>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small">
+                An ATS is a software used by most recruiters to search for and manage resumes. Below is how well
+                your resume appears in an ATS and in a recruiter search.
+              </p>
+              <div class="searchability-tip p-3 small">
+                <i class="fas fa-lightbulb text-warning me-1"></i>
+                <strong>Tip:</strong> Fix the red Xs to ensure your resume is easily searchable by recruiters and
+                parsed correctly by the ATS.
+              </div>
+
+              {% if job_match.ai_summary %}
+              <div class="mt-3 p-3 bg-light rounded text-start">
+                <div class="text-muted small mb-1"><i class="fas fa-robot me-1 text-success"></i>AI Summary</div>
+                <p class="small mb-0">{{ job_match.ai_summary }}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-6">
+              <div class="card dash-card h-100">
+                <div class="card-header dash-card-header">
+                  <h6 class="card-title mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Your Strengths</h6>
+                </div>
+                <div class="card-body">
+                  {% for strength in job_match.strength_areas %}
+                  <div class="strength-item small"><i class="fas fa-check text-success me-2"></i>{{ strength }}</div>
+                  {% empty %}
+                  <p class="text-muted small mb-0">No strengths identified.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card dash-card h-100">
+                <div class="card-header dash-card-header">
+                  <h6 class="card-title mb-0"><i class="fas fa-exclamation-circle me-2 text-warning"></i>Gap Areas</h6>
+                </div>
+                <div class="card-body">
+                  {% for gap in job_match.gap_areas %}
+                  <div class="strength-item small"><i class="fas fa-arrow-up text-warning me-2"></i>{{ gap }}</div>
+                  {% empty %}
+                  <p class="text-muted small mb-0">No gaps identified.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESUME REPORT -->
+    <div class="tab-pane fade" id="pane-report" role="tabpanel" aria-labelledby="tab-report">
+      <div class="row g-4">
+        <!-- Skills Comparison -->
+        <div class="col-lg-5">
+          <div class="card dash-card h-100">
+            <div class="card-header dash-card-header">
+              <h6 class="card-title mb-0"><i class="fas fa-columns me-2 text-success"></i>Skills Comparison</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="row g-0">
+                <div class="col-6 border-end">
+                  <div class="p-3 border-bottom bg-light"><strong class="small">Your Resume</strong></div>
+                  <div class="p-3 comparison-col">
+                    {% for skill in job_match.matching_skills %}
+                    <span class="keyword-tag keyword-match">{{ skill }}</span>
+                    {% empty %}
+                    <span class="text-muted small">No recognized skills.</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-3 border-bottom bg-light"><strong class="small">Job Description</strong></div>
+                  <div class="p-3 comparison-col">
+                    {% for skill in job_match.matching_skills %}
+                    <span class="keyword-tag keyword-match">{{ skill }}</span>
+                    {% endfor %}
+                    {% for skill in job_match.missing_skills %}
+                    <span class="keyword-tag keyword-missing">{{ skill }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Issues checklist -->
+        <div class="col-lg-7">
+          <div class="card dash-card h-100">
+            <div class="card-header dash-card-header d-flex justify-content-between align-items-center">
+              <h6 class="card-title mb-0"><i class="fas fa-clipboard-check me-2 text-warning"></i>Resume Checklist</h6>
+              <a href="{% url 'job_matching:history' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-history me-1"></i>History</a>
+            </div>
+            <div class="card-body p-0">
+              <!-- Hard Skills -->
+              <div class="checklist-row d-flex align-items-center px-3 py-2">
+                <div class="checklist-status">
+                  {% if job_match.missing_skills %}<i class="fas fa-times-circle text-danger"></i>
+                  {% else %}<i class="fas fa-check-circle text-success"></i>{% endif %}
+                </div>
+                <div>
+                  <div class="small fw-semibold">Hard Skills</div>
+                  <div class="text-muted small">
+                    {% if job_match.missing_skills %}Hard skills enable you to perform job-specific duties. Match them to the exact spelling in the job description.{% else %}Your hard skills are well represented.{% endif %}
+                  </div>
+                </div>
+                {% if job_match.missing_skills %}
+                <span class="badge bg-danger-subtle text-danger checklist-count">{{ job_match.missing_skills|length }} to fix</span>
+                {% else %}
+                <span class="badge bg-success-subtle text-success checklist-count">OK</span>
+                {% endif %}
+              </div>
+
+              <!-- Keywords -->
+              <div class="checklist-row d-flex align-items-center px-3 py-2">
+                <div class="checklist-status">
+                  {% if job_match.missing_keywords %}<i class="fas fa-times-circle text-danger"></i>
+                  {% else %}<i class="fas fa-check-circle text-success"></i>{% endif %}
+                </div>
+                <div>
+                  <div class="small fw-semibold">Searchability</div>
+                  <div class="text-muted small">
+                    {% if job_match.missing_keywords %}Missing keywords from the job description in your resume.{% else %}All job-description keywords were found.{% endif %}
+                  </div>
+                </div>
+                {% if job_match.missing_keywords %}
+                <span class="badge bg-danger-subtle text-danger checklist-count">{{ job_match.missing_keywords|length }} to fix</span>
+                {% else %}
+                <span class="badge bg-success-subtle text-success checklist-count">OK</span>
+                {% endif %}
+              </div>
+
+              <!-- Sections -->
+              <div class="checklist-row d-flex align-items-center px-3 py-2">
+                <div class="checklist-status"><i class="fas fa-check-circle text-success"></i></div>
+                <div>
+                  <div class="small fw-semibold">Section Headings</div>
+                  <div class="text-muted small">Your resume covers {{ job_match.section_analysis|length }} of the job description's sections.</div>
+                </div>
+                <span class="badge bg-success-subtle text-success checklist-count">OK</span>
+              </div>
+
+              <!-- Match score -->
+              <div class="checklist-row d-flex align-items-center px-3 py-2">
+                <div class="checklist-status">
+                  {% if job_match.match_score >= 60 %}<i class="fas fa-check-circle text-success"></i>
+                  {% else %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
+                </div>
+                <div>
+                  <div class="small fw-semibold">Overall Match</div>
+                  <div class="text-muted small">{{ job_match.match_score|floatformat:0 }}% overall match with the job description.</div>
+                </div>
+                <span class="badge bg-{{ match_label.1 }} checklist-count">{{ match_label.0 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section-by-Section Analysis -->
+      {% if job_match.section_analysis %}
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-list-alt me-2 text-primary"></i>Section-by-Section Analysis</h6>
+          <span class="badge bg-primary-subtle text-primary ms-auto">{{ job_match.section_analysis|length }} sections</span>
+        </div>
+        <div class="card-body">
+          {% for section in job_match.section_analysis %}
+          <div class="section-row d-flex align-items-center py-2 flex-wrap gap-2">
+            <div class="me-3" style="min-width:170px">
+              <div class="fw-semibold small">{{ section.section }}</div>
+              <span class="badge
+                {% if section.score >= 70 %}bg-success-subtle text-success
+                {% elif section.score >= 50 %}bg-warning-subtle text-warning
+                {% else %}bg-danger-subtle text-danger{% endif %}">{{ section.label }}</span>
+            </div>
+            <div class="me-3" style="min-width:120px">
+              <div class="progress section-progress">
+                <div class="progress-bar {% if section.score >= 70 %}bg-success{% elif section.score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width:{{ section.score }}%"></div>
+              </div>
+              <small class="text-muted">{{ section.score }}%</small>
+            </div>
+            <div class="flex-grow-1">
+              {% for kw in section.matching %}<span class="keyword-tag keyword-match">{{ kw }}</span>{% endfor %}
+              {% for kw in section.missing %}<span class="keyword-tag keyword-missing">{{ kw }}</span>{% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Optimize My CV -->
+      {% if job_match.optimize_plan %}
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-tasks me-2 text-warning"></i>Optimize My CV</h6>
+          <span class="badge bg-warning-subtle text-warning ms-auto">{{ job_match.optimize_plan|length }} actions</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Tick tasks off as you apply them — prioritized JobScan-style action plan.</p>
+          {% for item in job_match.optimize_plan %}
+          <div class="optimize-task mb-2">
+            <input class="form-check-input optimize-toggle mt-1" type="checkbox" id="opt-{{ forloop.counter }}" data-idx="{{ forloop.counter0 }}">
+            <div class="optimize-action flex-grow-1 small">
+              {% if item.priority == 'High' %}<span class="badge priority-high me-1">High</span>
+              {% elif item.priority == 'Medium' %}<span class="badge priority-medium me-1">Medium</span>
+              {% else %}<span class="badge priority-low me-1">Low</span>{% endif %}
+              {{ item.action }}
+              <small class="text-muted d-block mt-1"><i class="fas fa-tag me-1"></i>{{ item.target }}</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Suggestions -->
+      {% if job_match.suggestions %}
+      <div class="card dash-card mt-4">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Improvement Suggestions</h6>
+        </div>
+        <div class="card-body">
+          {% for suggestion in job_match.suggestions %}
+          <div class="strength-item small"><i class="fas fa-arrow-right text-success me-2"></i>{{ suggestion }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- JOB DESCRIPTION -->
+    <div class="tab-pane fade" id="pane-jd" role="tabpanel" aria-labelledby="tab-jd">
+      <div class="card dash-card">
+        <div class="card-header dash-card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-file-contract me-2 text-primary"></i>Job Description</h6>
+        </div>
+        <div class="card-body job-desc-body">{{ job_match.job_description.description }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const score = {{ job_match.match_score|floatformat:0 }};
+const color = score >= 70 ? '#1a8f5c' : score >= 50 ? '#ffc107' : '#dc3545';
+new Chart(document.getElementById('matchGauge'), {
+  type: 'doughnut',
+  data: {
+    datasets: [{ data: [score, 100-score], backgroundColor: [color, 'rgba(0,0,0,0.07)'], borderWidth: 0, circumference: 180, rotation: 270 }]
+  },
+  options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+});
+
+document.querySelectorAll('.optimize-toggle').forEach(function (cb) {
+  cb.addEventListener('change', function () {
+    try { localStorage.setItem('careerai_opt_' + {{ job_match.id }}, cb.checked); } catch (e) {}
+  });
+  try { cb.checked = localStorage.getItem('careerai_opt_' + {{ job_match.id }}) === 'true'; } catch (e) {}
+});
+</script>
+{% endblock %}
