@@ -39,3 +39,10 @@ start.bat
 test_pdf.pdf
 
 media/
+
+# Internal Dossiers & Report Scratch
+TECHNICAL_DOSSIER*
+AI_BASED_JOB_READINESS*
+generate_dossier*
+reviewer_response*
+push_to_github.bat

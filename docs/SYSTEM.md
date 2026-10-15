@@ -52,11 +52,11 @@ Browser ──► Django ──► MySQL
 | Database | MySQL 8.0 |
 | ORM | Django ORM + PyMySQL |
 | Authentication | django-allauth (email + Google OAuth) |
-| AI | OpenAI API / Groq API (LLaMA 3.3 70B) |
+| AI | OpenAI API / Groq API (Qwen 3.8 27B / LLaMA) |
 | Email | django-anymail + Mailtrap |
 | PDF | ReportLab, xhtml2pdf |
 | Document Parsing | PyPDF2, python-docx |
-| NLP (fallback) | spaCy, NLTK |
+| NLP (fallback) | RegEx & heuristic dictionaries, text tokenization |
 | Frontend | Bootstrap 5.3, Chart.js, Font Awesome 6 |
 | Static Files | WhiteNoise |
 | Container | Docker, Gunicorn, Nginx |
@@ -290,7 +290,7 @@ The `OPENAI_API_KEY` environment variable determines the provider:
 | Readiness Assessment | `apps/assessment/views.py` | Multi-dimensional career readiness scoring |
 
 ### Fallback
-When AI is unavailable, NLP-based analysis (spaCy + NLTK) provides basic keyword extraction and scoring.
+When AI is unavailable, NLP-based analysis (RegEx & heuristic dictionaries + text tokenization) provides basic keyword extraction and scoring.
 
 ---
 
@@ -374,7 +374,7 @@ source venv/bin/activate # Linux/macOS
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Download spaCy model
+# 4. Download RegEx & heuristic dictionaries model
 python -m spacy download en_core_web_sm
 
 # 5. Configure .env (copy from .env.example)
